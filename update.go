@@ -1,5 +1,17 @@
 package sqlbuilder
 
+// IUpdateStatement is the Buildable interface wrapping of Update
+type IUpdateStatement interface {
+	Set(col Column, val interface{}) IUpdateStatement
+	Where(cond Condition) IUpdateStatement
+	Limit(limit int) IUpdateStatement
+	Offset(offset int) IUpdateStatement
+	OrderBy(desc bool, columns ...Column) IUpdateStatement
+	ToSql() (query string, args []interface{}, err error)
+
+	privateUpdate()
+}
+
 // UpdateStatement represents a UPDATE statement.
 type UpdateStatement struct {
 	table   Table
@@ -10,23 +22,37 @@ type UpdateStatement struct {
 	offset  int
 
 	err error
+
+	dialect Dialect
 }
 
 // Update returns new UPDATE statement. The table is Table object to update.
-func Update(tbl Table) *UpdateStatement {
+func Update(tbl Table) IUpdateStatement {
+	return update(tbl, dialect())
+}
+
+func update(tbl Table, d Dialect) *UpdateStatement {
+	if d == nil {
+		d = dialect()
+	}
 	if tbl == nil {
 		return &UpdateStatement{
 			err: newError("table is nil."),
 		}
 	}
 	return &UpdateStatement{
-		table: tbl,
-		set:   make([]serializable, 0),
+		table:   tbl,
+		set:     make([]serializable, 0),
+		dialect: dialect(),
 	}
 }
 
+func (b *UpdateStatement) privateUpdate() {
+	// nop
+}
+
 // Set sets SETS clause like col=val.  Call many time for update multi columns.
-func (b *UpdateStatement) Set(col Column, val interface{}) *UpdateStatement {
+func (b *UpdateStatement) Set(col Column, val interface{}) IUpdateStatement {
 	if b.err != nil {
 		return b
 	}
@@ -39,7 +65,7 @@ func (b *UpdateStatement) Set(col Column, val interface{}) *UpdateStatement {
 }
 
 // Where sets WHERE clause.  The cond is filter condition.
-func (b *UpdateStatement) Where(cond Condition) *UpdateStatement {
+func (b *UpdateStatement) Where(cond Condition) IUpdateStatement {
 	if b.err != nil {
 		return b
 	}
@@ -48,7 +74,7 @@ func (b *UpdateStatement) Where(cond Condition) *UpdateStatement {
 }
 
 // Limit sets LIMIT clause.
-func (b *UpdateStatement) Limit(limit int) *UpdateStatement {
+func (b *UpdateStatement) Limit(limit int) IUpdateStatement {
 	if b.err != nil {
 		return b
 	}
@@ -57,7 +83,7 @@ func (b *UpdateStatement) Limit(limit int) *UpdateStatement {
 }
 
 // Limit sets OFFSET clause.
-func (b *UpdateStatement) Offset(offset int) *UpdateStatement {
+func (b *UpdateStatement) Offset(offset int) IUpdateStatement {
 	if b.err != nil {
 		return b
 	}
@@ -66,7 +92,7 @@ func (b *UpdateStatement) Offset(offset int) *UpdateStatement {
 }
 
 // OrderBy sets "ORDER BY" clause. Use descending order if the desc is true, by the columns.
-func (b *UpdateStatement) OrderBy(desc bool, columns ...Column) *UpdateStatement {
+func (b *UpdateStatement) OrderBy(desc bool, columns ...Column) IUpdateStatement {
 	if b.err != nil {
 		return b
 	}
@@ -82,7 +108,7 @@ func (b *UpdateStatement) OrderBy(desc bool, columns ...Column) *UpdateStatement
 
 // ToSql generates query string, placeholder arguments, and returns err on errors.
 func (b *UpdateStatement) ToSql() (query string, args []interface{}, err error) {
-	bldr := newBuilder()
+	bldr := newBuilder(b.dialect)
 	defer func() {
 		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()
 	}()
@@ -149,7 +175,7 @@ func (m updateValue) serialize(bldr *builder) {
 		return
 	}
 
-	bldr.Append(dialect().QuoteField(m.col.column_name()))
+	bldr.Append(bldr.dialect.QuoteField(m.col.column_name()))
 	bldr.Append("=")
 	bldr.AppendItem(m.val)
 }
