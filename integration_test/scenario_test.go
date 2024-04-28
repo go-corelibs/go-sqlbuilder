@@ -27,6 +27,9 @@ func TestCreateTable(t *testing.T) {
 func TestAlterTable(t *testing.T) {
 	stmt := sb.AlterTable(tbl_person).AddColumn(sb.IntColumn("other_column", nil))
 	query, args, err := stmt.ToSql()
+	if err != nil {
+		t.Error(err.Error())
+	}
 	_, err = db.Exec(query, args...)
 	if err != nil {
 		t.Error(err.Error())
