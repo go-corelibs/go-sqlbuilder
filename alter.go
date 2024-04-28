@@ -186,27 +186,24 @@ func (b *AlterTableStatement) ToSql() (query string, args []interface{}, err err
 
 	first := true
 	for _, add_column := range b.add_columns {
-		if first {
-			first = false
-		} else {
+		if !first {
 			bldr.Append(", ")
 		}
+		first = false
 		bldr.AppendItem(add_column)
 	}
 	for _, change_column := range b.change_columns {
-		if first {
-			first = false
-		} else {
+		if !first {
 			bldr.Append(", ")
 		}
+		first = false
 		bldr.AppendItem(change_column)
 	}
 	for _, drop_column := range b.drop_columns {
-		if first {
-			first = false
-		} else {
+		if !first {
 			bldr.Append(", ")
 		}
+		first = false
 		bldr.Append("DROP COLUMN ")
 		if colname := drop_column.column_name(); len(colname) != 0 {
 			bldr.Append(b.dialect.QuoteField(colname))
@@ -215,9 +212,7 @@ func (b *AlterTableStatement) ToSql() (query string, args []interface{}, err err
 		}
 	}
 	if len(b.rename_to) != 0 {
-		if first {
-			first = false
-		} else {
+		if !first {
 			bldr.Append(", ")
 		}
 		bldr.Append("RENAME TO ")
