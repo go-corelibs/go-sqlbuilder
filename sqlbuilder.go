@@ -40,7 +40,7 @@ func SetDialect(opt Dialect) {
 
 func dialect() Dialect {
 	if _dialect == nil {
-		panic(newError("dialect is not setted.  Call SetDialect() first."))
+		panic(newError("default dialect is not set. Please call SetDialect() first."))
 	}
 	return _dialect
 }
