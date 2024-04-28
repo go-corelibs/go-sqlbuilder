@@ -23,7 +23,7 @@ func TestError(t *testing.T) {
 	}
 }
 
-func ExampleScenario() {
+func Example() {
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		fmt.Println(err.Error())
