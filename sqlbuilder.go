@@ -1,6 +1,6 @@
 // Package sqlbuilder is a SQL-query builder for golang.  This supports you using relational database with more readable and flexible code than raw SQL query string.
 //
-// See https://github.com/umisama/go-sqlbuilder for more infomation.
+// See https://github.com/go-corelibs/go-sqlbuilder for more infomation.
 package sqlbuilder
 
 import (

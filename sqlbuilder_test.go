@@ -31,7 +31,7 @@ func ExampleScenario() {
 	}
 
 	// Set dialect first
-	// dialects are in github.com/umisama/go-sqlbuilder/dialects
+	// dialects are in github.com/go-corelibs/go-sqlbuilder/dialects
 	SetDialect(TestDialect{})
 
 	// Define a table

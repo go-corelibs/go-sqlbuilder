@@ -3,7 +3,7 @@ package dialects
 import (
 	"errors"
 	"fmt"
-	sb "github.com/umisama/go-sqlbuilder"
+	sb "github.com/go-corelibs/go-sqlbuilder"
 	"time"
 )
 
