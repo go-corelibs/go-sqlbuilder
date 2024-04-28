@@ -3,7 +3,7 @@
 CORELIB_PKG := go-corelibs/go-sqlbuilder
 VERSION_TAGS += MAIN
 MAIN_MK_SUMMARY := ${CORELIB_PKG}
-MAIN_MK_VERSION := v0.0.0
+MAIN_MK_VERSION := v1.0.0
 
 GOTESTS_SKIP += Example
 GOTESTS_ARGV := .
