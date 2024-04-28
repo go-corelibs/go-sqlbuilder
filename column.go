@@ -180,7 +180,7 @@ func (m *columnConfigImpl) toColumn(table Table) Column {
 }
 
 func (m *columnConfigImpl) serialize(bldr *builder) {
-	bldr.Append(dialect().QuoteField(m.name))
+	bldr.Append(bldr.dialect.QuoteField(m.name))
 	return
 }
 
@@ -225,7 +225,7 @@ func (m *columnImpl) serialize(bldr *builder) {
 	if m == Star {
 		bldr.Append("*")
 	} else {
-		bldr.Append(dialect().QuoteField(m.table.Name()) + "." + dialect().QuoteField(m.name))
+		bldr.Append(bldr.dialect.QuoteField(m.table.Name()) + "." + bldr.dialect.QuoteField(m.name))
 	}
 	return
 }
@@ -331,7 +331,7 @@ func (b ColumnList) serialize(bldr *builder) {
 		} else {
 			bldr.Append(", ")
 		}
-		bldr.Append(dialect().QuoteField(column.column_name()))
+		bldr.Append(bldr.dialect.QuoteField(column.column_name()))
 	}
 	return
 }
@@ -428,7 +428,7 @@ func (m *aliasColumn) As(alias string) Column {
 }
 
 func (m *aliasColumn) serialize(bldr *builder) {
-	bldr.Append(dialect().QuoteField(m.alias))
+	bldr.Append(bldr.dialect.QuoteField(m.alias))
 	return
 }
 
