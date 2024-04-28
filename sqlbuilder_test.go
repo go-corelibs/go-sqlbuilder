@@ -123,8 +123,8 @@ func (m TestDialect) QuoteField(field interface{}) string {
 		}
 		bracket = false
 	case nil:
-		return "NULL"
 		bracket = false
+		return "NULL"
 	}
 	if bracket {
 		str = "\"" + str + "\""
