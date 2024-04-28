@@ -28,8 +28,7 @@ func TestSelect(t *testing.T) {
 	var cases = []statementTestCase{{
 		stmt: Select(table1).
 			Columns(table1.C("test1"), table1.C("test2")).
-			Where(
-			And(
+			Where(And(
 				table1.C("id").Eq(1),
 				table1.C("test1").Eq(2),
 			)).
@@ -145,8 +144,7 @@ func BenchmarkSelect(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		Select(table1).
 			Columns(table1.C("test1"), table1.C("test2")).
-			Where(
-			And(
+			Where(And(
 				table1.C("id").Eq(1),
 				table1.C("test1").Eq(2),
 			)).
