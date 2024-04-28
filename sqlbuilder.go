@@ -49,13 +49,19 @@ type builder struct {
 	query *bytes.Buffer
 	args  []interface{}
 	err   error
+
+	dialect Dialect
 }
 
-func newBuilder() *builder {
+func newBuilder(d Dialect) *builder {
+	if d == nil {
+		d = dialect()
+	}
 	return &builder{
-		query: bytes.NewBuffer(make([]byte, 0, 256)),
-		args:  make([]interface{}, 0, 8),
-		err:   nil,
+		query:   bytes.NewBuffer(make([]byte, 0, 256)),
+		args:    make([]interface{}, 0, 8),
+		err:     nil,
+		dialect: d,
 	}
 }
 
@@ -70,7 +76,7 @@ func (b *builder) Query() string {
 	if b.err != nil {
 		return ""
 	}
-	return b.query.String() + dialect().QuerySuffix()
+	return b.query.String() + b.dialect.QuerySuffix()
 }
 
 func (b *builder) Args() []interface{} {
@@ -101,7 +107,7 @@ func (b *builder) AppendValue(val interface{}) {
 		return
 	}
 
-	b.query.WriteString(dialect().BindVar(len(b.args) + 1))
+	b.query.WriteString(b.dialect.BindVar(len(b.args) + 1))
 	b.args = append(b.args, val)
 	return
 }
