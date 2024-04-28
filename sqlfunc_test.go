@@ -13,7 +13,7 @@ func TestSqlFuncImplements(t *testing.T) {
 }
 
 func TestSqlFunc(t *testing.T) {
-	b := newBuilder()
+	b := newBuilder(TestDialect{})
 	table1 := NewTable(
 		"TABLE_A",
 		&TableOption{},
