@@ -1,5 +1,22 @@
 package sqlbuilder
 
+// SelectBuilder is the Buildable interface wrapping of Select
+type SelectBuilder interface {
+	Columns(columns ...Column) SelectBuilder
+	Where(cond Condition) SelectBuilder
+	Distinct() SelectBuilder
+	GroupBy(columns ...Column) SelectBuilder
+	Having(cond Condition) SelectBuilder
+	OrderBy(desc bool, columns ...Column) SelectBuilder
+	Limit(limit int) SelectBuilder
+	Offset(offset int) SelectBuilder
+	ToSql() (query string, args []interface{}, err error)
+	ToSubquery(alias string) Table
+
+	serialize(bldr *builder)
+	privateSelect()
+}
+
 // SelectStatement represents a SELECT statement.
 type SelectStatement struct {
 	columns  selectColumnList
@@ -13,10 +30,19 @@ type SelectStatement struct {
 	having   Condition
 
 	err error
+
+	dialect Dialect
 }
 
 // Select returns new SELECT statement with from as FROM clause.
-func Select(from Table) *SelectStatement {
+func Select(from Table) SelectBuilder {
+	return selectFn(from, dialect())
+}
+
+func selectFn(from Table, d Dialect) *SelectStatement {
+	if d == nil {
+		d = dialect()
+	}
 	if from == nil {
 		return &SelectStatement{
 			err: newError("table is nil."),
@@ -27,9 +53,13 @@ func Select(from Table) *SelectStatement {
 	}
 }
 
+func (b *SelectStatement) privateSelect() {
+	// nop
+}
+
 // Columns set columns for select.
 // Get all columns (use *) if it is not setted.
-func (b *SelectStatement) Columns(columns ...Column) *SelectStatement {
+func (b *SelectStatement) Columns(columns ...Column) SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -45,7 +75,7 @@ func (b *SelectStatement) Columns(columns ...Column) *SelectStatement {
 }
 
 // Where sets WHERE clause.  The cond is filter condition.
-func (b *SelectStatement) Where(cond Condition) *SelectStatement {
+func (b *SelectStatement) Where(cond Condition) SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -61,7 +91,7 @@ func (b *SelectStatement) Where(cond Condition) *SelectStatement {
 }
 
 // Distinct sets DISTINCT clause.
-func (b *SelectStatement) Distinct() *SelectStatement {
+func (b *SelectStatement) Distinct() SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -70,7 +100,7 @@ func (b *SelectStatement) Distinct() *SelectStatement {
 }
 
 // GroupBy sets "GROUP BY" clause by the columns.
-func (b *SelectStatement) GroupBy(columns ...Column) *SelectStatement {
+func (b *SelectStatement) GroupBy(columns ...Column) SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -83,7 +113,7 @@ func (b *SelectStatement) GroupBy(columns ...Column) *SelectStatement {
 }
 
 // GroupBy sets "HAVING" clause with the cond.
-func (b *SelectStatement) Having(cond Condition) *SelectStatement {
+func (b *SelectStatement) Having(cond Condition) SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -92,7 +122,7 @@ func (b *SelectStatement) Having(cond Condition) *SelectStatement {
 }
 
 // OrderBy sets "ORDER BY" clause. Use descending order if the desc is true, by the columns.
-func (b *SelectStatement) OrderBy(desc bool, columns ...Column) *SelectStatement {
+func (b *SelectStatement) OrderBy(desc bool, columns ...Column) SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -107,7 +137,7 @@ func (b *SelectStatement) OrderBy(desc bool, columns ...Column) *SelectStatement
 }
 
 // Limit sets LIMIT clause.
-func (b *SelectStatement) Limit(limit int) *SelectStatement {
+func (b *SelectStatement) Limit(limit int) SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -116,7 +146,7 @@ func (b *SelectStatement) Limit(limit int) *SelectStatement {
 }
 
 // Offset sets OFFSET clause.
-func (b *SelectStatement) Offset(offset int) *SelectStatement {
+func (b *SelectStatement) Offset(offset int) SelectBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -184,7 +214,7 @@ func (b *SelectStatement) serialize(bldr *builder) {
 
 // ToSql generates query string, placeholder arguments, and returns err on errors.
 func (b *SelectStatement) ToSql() (query string, args []interface{}, err error) {
-	bldr := newBuilder()
+	bldr := newBuilder(b.dialect)
 	bldr.AppendItem(b)
 	return bldr.Query(), bldr.Args(), bldr.Err()
 }
