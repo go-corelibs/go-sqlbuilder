@@ -39,7 +39,6 @@ func (m Sqlite) QuoteField(field interface{}) string {
 		}
 		bracket = false
 	case nil:
-		bracket = false
 		return "NULL"
 	}
 	if bracket {
