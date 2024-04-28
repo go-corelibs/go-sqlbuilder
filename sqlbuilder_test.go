@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 func TestError(t *testing.T) {
 	err := newError("hogehogestring")
 	if "sqlbuilder: hogehogestring" != err.Error() {
-		t.Errorf("failed\ngot %s", err.Error)
+		t.Errorf("failed\ngot %#v", err)
 	}
 }
 

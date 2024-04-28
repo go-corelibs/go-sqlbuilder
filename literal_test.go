@@ -151,7 +151,7 @@ func TestLiteralString(t *testing.T) {
 	for num, c := range cases {
 		val := c.lit.(*literalImpl).string()
 		if c.out != val {
-			t.Error("failed on %d", num)
+			t.Errorf("failed on %d", num)
 		}
 	}
 }
@@ -170,7 +170,7 @@ func TestLiteralIsNil(t *testing.T) {
 	for num, c := range cases {
 		isnil := c.in.IsNil()
 		if c.out != isnil {
-			t.Error("failed on %d", num)
+			t.Errorf("failed on %d", num)
 		}
 	}
 }

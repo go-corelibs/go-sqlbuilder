@@ -127,7 +127,7 @@ func TestSubquery(t *testing.T) {
 		t.Errorf("failed \ngot %#v", attrs)
 	}
 	if err != nil {
-		t.Error("failed \ngot %#v", err.Error())
+		t.Errorf("failed \ngot %#v", err)
 	}
 }
 
