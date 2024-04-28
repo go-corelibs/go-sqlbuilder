@@ -1,5 +1,21 @@
 package sqlbuilder
 
+// AlterTableBuilder is the Buildable interface wrapping of AlterTable
+type AlterTableBuilder interface {
+	RenameTo(name string) AlterTableBuilder
+	AddColumn(col ColumnConfig) AlterTableBuilder
+	AddColumnAfter(col ColumnConfig, after Column) AlterTableBuilder
+	AddColumnFirst(col ColumnConfig) AlterTableBuilder
+	DropColumn(col Column) AlterTableBuilder
+	ChangeColumn(old_column Column, new_column ColumnConfig) AlterTableBuilder
+	ChangeColumnAfter(old_column Column, new_column ColumnConfig, after Column) AlterTableBuilder
+	ChangeColumnFirst(old_column Column, new_column ColumnConfig) AlterTableBuilder
+	ToSql() (query string, args []interface{}, err error)
+	ApplyToTable() error
+
+	privateAlterTable()
+}
+
 type AlterTableStatement struct {
 	table          *table
 	rename_to      string
@@ -7,10 +23,18 @@ type AlterTableStatement struct {
 	drop_columns   []Column
 	change_columns []*alterTableChangeColumn
 
-	err error
+	err     error
+	dialect Dialect
 }
 
-func AlterTable(tbl Table) *AlterTableStatement {
+func AlterTable(tbl Table) AlterTableBuilder {
+	return alterTable(tbl, dialect())
+}
+
+func alterTable(tbl Table, d Dialect) *AlterTableStatement {
+	if d == nil {
+		d = dialect()
+	}
 	if tbl == nil {
 		return &AlterTableStatement{
 			err: newError("table is nil."),
@@ -27,10 +51,15 @@ func AlterTable(tbl Table) *AlterTableStatement {
 		table:          t,
 		add_columns:    make([]*alterTableAddColumn, 0),
 		change_columns: make([]*alterTableChangeColumn, 0),
+		dialect:        d,
 	}
 }
 
-func (b *AlterTableStatement) RenameTo(name string) *AlterTableStatement {
+func (b *AlterTableStatement) privateAlterTable() {
+	// nop
+}
+
+func (b *AlterTableStatement) RenameTo(name string) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -39,49 +68,52 @@ func (b *AlterTableStatement) RenameTo(name string) *AlterTableStatement {
 	return b
 }
 
-func (b *AlterTableStatement) AddColumn(col ColumnConfig) *AlterTableStatement {
+func (b *AlterTableStatement) AddColumn(col ColumnConfig) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
 
 	b.add_columns = append(b.add_columns, &alterTableAddColumn{
-		table:  b.table,
-		column: col,
-		first:  false,
-		after:  nil,
+		table:   b.table,
+		column:  col,
+		first:   false,
+		after:   nil,
+		dialect: b.dialect,
 	})
 	return b
 }
 
-func (b *AlterTableStatement) AddColumnAfter(col ColumnConfig, after Column) *AlterTableStatement {
+func (b *AlterTableStatement) AddColumnAfter(col ColumnConfig, after Column) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
 
 	b.add_columns = append(b.add_columns, &alterTableAddColumn{
-		table:  b.table,
-		column: col,
-		first:  false,
-		after:  after,
+		table:   b.table,
+		column:  col,
+		first:   false,
+		after:   after,
+		dialect: b.dialect,
 	})
 	return b
 }
 
-func (b *AlterTableStatement) AddColumnFirst(col ColumnConfig) *AlterTableStatement {
+func (b *AlterTableStatement) AddColumnFirst(col ColumnConfig) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
 
 	b.add_columns = append(b.add_columns, &alterTableAddColumn{
-		table:  b.table,
-		column: col,
-		first:  true,
-		after:  nil,
+		table:   b.table,
+		column:  col,
+		first:   true,
+		after:   nil,
+		dialect: b.dialect,
 	})
 	return b
 }
 
-func (b *AlterTableStatement) DropColumn(col Column) *AlterTableStatement {
+func (b *AlterTableStatement) DropColumn(col Column) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -90,7 +122,7 @@ func (b *AlterTableStatement) DropColumn(col Column) *AlterTableStatement {
 	return b
 }
 
-func (b *AlterTableStatement) ChangeColumn(old_column Column, new_column ColumnConfig) *AlterTableStatement {
+func (b *AlterTableStatement) ChangeColumn(old_column Column, new_column ColumnConfig) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -101,11 +133,12 @@ func (b *AlterTableStatement) ChangeColumn(old_column Column, new_column ColumnC
 		new_column: new_column,
 		first:      false,
 		after:      nil,
+		dialect:    b.dialect,
 	})
 	return b
 }
 
-func (b *AlterTableStatement) ChangeColumnAfter(old_column Column, new_column ColumnConfig, after Column) *AlterTableStatement {
+func (b *AlterTableStatement) ChangeColumnAfter(old_column Column, new_column ColumnConfig, after Column) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -116,11 +149,12 @@ func (b *AlterTableStatement) ChangeColumnAfter(old_column Column, new_column Co
 		new_column: new_column,
 		first:      false,
 		after:      after,
+		dialect:    b.dialect,
 	})
 	return b
 }
 
-func (b *AlterTableStatement) ChangeColumnFirst(old_column Column, new_column ColumnConfig) *AlterTableStatement {
+func (b *AlterTableStatement) ChangeColumnFirst(old_column Column, new_column ColumnConfig) AlterTableBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -131,12 +165,13 @@ func (b *AlterTableStatement) ChangeColumnFirst(old_column Column, new_column Co
 		new_column: new_column,
 		first:      true,
 		after:      nil,
+		dialect:    b.dialect,
 	})
 	return b
 }
 
 func (b *AlterTableStatement) ToSql() (query string, args []interface{}, err error) {
-	bldr := newBuilder()
+	bldr := newBuilder(b.dialect)
 	defer func() {
 		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()
 	}()
@@ -174,7 +209,7 @@ func (b *AlterTableStatement) ToSql() (query string, args []interface{}, err err
 		}
 		bldr.Append("DROP COLUMN ")
 		if colname := drop_column.column_name(); len(colname) != 0 {
-			bldr.Append(dialect().QuoteField(colname))
+			bldr.Append(b.dialect.QuoteField(colname))
 		} else {
 			bldr.AppendItem(drop_column)
 		}
@@ -186,7 +221,7 @@ func (b *AlterTableStatement) ToSql() (query string, args []interface{}, err err
 			bldr.Append(", ")
 		}
 		bldr.Append("RENAME TO ")
-		bldr.Append(dialect().QuoteField(b.rename_to))
+		bldr.Append(b.dialect.QuoteField(b.rename_to))
 	}
 
 	return "", nil, nil
@@ -222,6 +257,8 @@ type alterTableAddColumn struct {
 	column ColumnConfig
 	first  bool
 	after  Column
+
+	dialect Dialect
 }
 
 func (b *alterTableAddColumn) serialize(bldr *builder) {
@@ -229,7 +266,7 @@ func (b *alterTableAddColumn) serialize(bldr *builder) {
 	bldr.AppendItem(b.column)
 
 	// SQL data name
-	typ, err := dialect().ColumnTypeToString(b.column)
+	typ, err := b.dialect.ColumnTypeToString(b.column)
 	if err != nil {
 		bldr.SetError(err)
 	} else if len(typ) == 0 {
@@ -239,7 +276,7 @@ func (b *alterTableAddColumn) serialize(bldr *builder) {
 		bldr.Append(typ)
 	}
 
-	opt, err := dialect().ColumnOptionToString(b.column.Option())
+	opt, err := b.dialect.ColumnOptionToString(b.column.Option())
 	if err != nil {
 		bldr.SetError(err)
 	} else if len(opt) != 0 {
@@ -252,7 +289,7 @@ func (b *alterTableAddColumn) serialize(bldr *builder) {
 	} else if b.after != nil {
 		bldr.Append(" AFTER ")
 		if colname := b.after.column_name(); len(colname) != 0 {
-			bldr.Append(dialect().QuoteField(colname))
+			bldr.Append(b.dialect.QuoteField(colname))
 		} else {
 			bldr.AppendItem(b.after)
 		}
@@ -275,19 +312,21 @@ type alterTableChangeColumn struct {
 	new_column ColumnConfig
 	first      bool
 	after      Column
+
+	dialect Dialect
 }
 
 func (b *alterTableChangeColumn) serialize(bldr *builder) {
 	bldr.Append("CHANGE COLUMN ")
 	if colname := b.old_column.column_name(); len(colname) != 0 {
-		bldr.Append(dialect().QuoteField(colname))
+		bldr.Append(b.dialect.QuoteField(colname))
 	} else {
 		bldr.AppendItem(b.old_column)
 	}
 	bldr.Append(" ")
 	bldr.AppendItem(b.new_column)
 
-	typ, err := dialect().ColumnTypeToString(b.new_column)
+	typ, err := b.dialect.ColumnTypeToString(b.new_column)
 	if err != nil {
 		bldr.SetError(err)
 	} else if len(typ) == 0 {
@@ -297,7 +336,7 @@ func (b *alterTableChangeColumn) serialize(bldr *builder) {
 		bldr.Append(typ)
 	}
 
-	opt, err := dialect().ColumnOptionToString(b.new_column.Option())
+	opt, err := b.dialect.ColumnOptionToString(b.new_column.Option())
 	if err != nil {
 		bldr.SetError(err)
 	} else if len(opt) != 0 {
@@ -310,7 +349,7 @@ func (b *alterTableChangeColumn) serialize(bldr *builder) {
 	} else if b.after != nil {
 		bldr.Append(" AFTER ")
 		if colname := b.after.column_name(); len(colname) != 0 {
-			bldr.Append(dialect().QuoteField(colname))
+			bldr.Append(b.dialect.QuoteField(colname))
 		} else {
 			bldr.AppendItem(b.after)
 		}

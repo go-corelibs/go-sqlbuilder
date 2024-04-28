@@ -119,11 +119,11 @@ func TestAlterTable(t *testing.T) {
 
 func TestAlterTableApplyToTable(t *testing.T) {
 	var cases = []struct {
-		stmt           func(Table) *AlterTableStatement
+		stmt           func(Table) AlterTableBuilder
 		expect_columns []string
 		expect_name    string
 	}{{
-		stmt: func(t Table) *AlterTableStatement {
+		stmt: func(t Table) AlterTableBuilder {
 			return AlterTable(t).
 				RenameTo("TABLE_AAA").
 				AddColumn(IntColumn("test3", nil)).
@@ -136,7 +136,7 @@ func TestAlterTableApplyToTable(t *testing.T) {
 		expect_columns: []string{"test2a", "test4", "test5", "test1a", "test3"},
 		expect_name:    "TABLE_AAA",
 	}, {
-		stmt: func(t Table) *AlterTableStatement {
+		stmt: func(t Table) AlterTableBuilder {
 			return AlterTable(t).
 				ChangeColumnAfter(t.C("test1"), IntColumn("test1a", nil), t.C("test2"))
 		},
