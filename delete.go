@@ -39,7 +39,7 @@ func deleteFn(from Table, d Dialect) *DeleteStatement {
 	}
 	return &DeleteStatement{
 		from:    from,
-		dialect: dialect(),
+		dialect: d,
 	}
 }
 

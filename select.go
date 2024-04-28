@@ -49,7 +49,8 @@ func selectFn(from Table, d Dialect) *SelectStatement {
 		}
 	}
 	return &SelectStatement{
-		from: from,
+		from:    from,
+		dialect: d,
 	}
 }
 

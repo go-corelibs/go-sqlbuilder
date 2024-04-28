@@ -43,7 +43,7 @@ func update(tbl Table, d Dialect) *UpdateStatement {
 	return &UpdateStatement{
 		table:   tbl,
 		set:     make([]serializable, 0),
-		dialect: dialect(),
+		dialect: d,
 	}
 }
 

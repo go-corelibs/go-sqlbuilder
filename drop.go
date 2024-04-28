@@ -37,7 +37,7 @@ func dropTable(tbl Table, d Dialect) *DropTableStatement {
 	}
 	return &DropTableStatement{
 		table:   tbl,
-		dialect: dialect(),
+		dialect: d,
 	}
 }
 

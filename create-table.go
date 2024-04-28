@@ -40,7 +40,7 @@ func createTable(tbl Table, d Dialect) *CreateTableStatement {
 
 	return &CreateTableStatement{
 		table:   tbl,
-		dialect: dialect(),
+		dialect: d,
 	}
 }
 

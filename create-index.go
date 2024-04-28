@@ -43,7 +43,7 @@ func createIndex(tbl Table, d Dialect) *CreateIndexStatement {
 	}
 	return &CreateIndexStatement{
 		table:   tbl,
-		dialect: dialect(),
+		dialect: d,
 	}
 }
 

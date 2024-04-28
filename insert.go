@@ -44,7 +44,7 @@ func insert(into Table, d Dialect) *InsertStatement {
 		into:    into,
 		columns: make(ColumnList, 0),
 		values:  make([]literal, 0),
-		dialect: dialect(),
+		dialect: d,
 	}
 }
 
