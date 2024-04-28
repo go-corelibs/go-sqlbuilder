@@ -105,7 +105,7 @@ func (m Sqlite) TableOptionToString(to *sb.TableOption) (string, error) {
 		opt = str_append(opt, m.tableOptionUnique(to.Unique))
 	}
 
-	return "", nil
+	return opt, nil
 }
 
 func (m Sqlite) tableOptionUnique(op [][]string) string {

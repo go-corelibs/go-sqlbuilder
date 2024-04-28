@@ -121,7 +121,7 @@ func (m Postgresql) TableOptionToString(to *sb.TableOption) (string, error) {
 		opt = str_append(opt, m.tableOptionUnique(to.Unique))
 	}
 
-	return "", nil
+	return opt, nil
 }
 
 func (m Postgresql) tableOptionUnique(op [][]string) string {
