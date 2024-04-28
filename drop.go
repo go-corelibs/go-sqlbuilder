@@ -1,14 +1,30 @@
 package sqlbuilder
 
-// DeleteTableStatement represents a "DROP TABLE" statement.
+// IDropTableStatement is the Buildable interface wrapping of DeleteTable
+type IDropTableStatement interface {
+	ToSql() (query string, args []interface{}, err error)
+
+	privateDropTable()
+}
+
+// DropTableStatement represents a "DROP TABLE" statement.
 type DropTableStatement struct {
 	table Table
 
 	err error
+
+	dialect Dialect
 }
 
 // DropTable returns new "DROP TABLE" statement. The table is Table object to drop.
-func DropTable(tbl Table) *DropTableStatement {
+func DropTable(tbl Table) IDropTableStatement {
+	return dropTable(tbl, dialect())
+}
+
+func dropTable(tbl Table, d Dialect) *DropTableStatement {
+	if d == nil {
+		d = dialect()
+	}
 	if tbl == nil {
 		return &DropTableStatement{
 			err: newError("table is nil."),
@@ -20,13 +36,18 @@ func DropTable(tbl Table) *DropTableStatement {
 		}
 	}
 	return &DropTableStatement{
-		table: tbl,
+		table:   tbl,
+		dialect: dialect(),
 	}
+}
+
+func (b *DropTableStatement) privateDropTable() {
+	// nop
 }
 
 // ToSql generates query string, placeholder arguments, and returns err on errors.
 func (b *DropTableStatement) ToSql() (query string, args []interface{}, err error) {
-	bldr := newBuilder()
+	bldr := newBuilder(b.dialect)
 	defer func() {
 		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()
 	}()
