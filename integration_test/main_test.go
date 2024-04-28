@@ -10,9 +10,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
+
 	sb "github.com/go-corelibs/go-sqlbuilder"
 	"github.com/go-corelibs/go-sqlbuilder/dialects"
-	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var db *sql.DB

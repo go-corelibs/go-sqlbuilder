@@ -1,4 +1,3 @@
-/*
-	package for integration test(go-sqlbuilder)
-*/
+// Package sqlbuilder_integration for actual database integration testing
+
 package sqlbuilder_integration

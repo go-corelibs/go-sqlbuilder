@@ -3,9 +3,10 @@ package dialects
 import (
 	"errors"
 	"fmt"
-	sb "github.com/go-corelibs/go-sqlbuilder"
 	"strconv"
 	"time"
+
+	sb "github.com/go-corelibs/go-sqlbuilder"
 )
 
 type Postgresql struct{}

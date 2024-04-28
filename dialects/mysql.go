@@ -3,8 +3,9 @@ package dialects
 import (
 	"errors"
 	"fmt"
-	sb "github.com/go-corelibs/go-sqlbuilder"
 	"time"
+
+	sb "github.com/go-corelibs/go-sqlbuilder"
 )
 
 type MySql struct{}

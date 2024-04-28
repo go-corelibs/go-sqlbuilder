@@ -6,8 +6,9 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	sb "github.com/go-corelibs/go-sqlbuilder"
 	_ "github.com/ziutek/mymysql/godrv"
+
+	sb "github.com/go-corelibs/go-sqlbuilder"
 )
 
 func TestCreateTable(t *testing.T) {

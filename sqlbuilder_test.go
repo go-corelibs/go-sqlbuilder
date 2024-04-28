@@ -1,13 +1,13 @@
 package sqlbuilder
 
 import (
+	"database/sql"
 	errs "errors"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 )
 
