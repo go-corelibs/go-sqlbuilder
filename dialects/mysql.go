@@ -115,6 +115,9 @@ func (m MySql) ColumnOptionToString(co *sb.ColumnOption) (string, error) {
 	if co.Unique {
 		opt = str_append(opt, "UNIQUE")
 	}
+	if co.Default != nil {
+		opt = str_append(opt, "DEFAULT "+m.QuoteField(co.Default))
+	}
 
 	return opt, nil
 }
