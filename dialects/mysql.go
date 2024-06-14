@@ -94,13 +94,11 @@ func (m MySql) ColumnTypeToString(cc sb.ColumnConfig) (string, error) {
 		typ = "BOOLEAN"
 	case sb.ColumnTypeBytes:
 		typ = "BLOB"
+	default:
+		return "", errors.New("dialects: unknown column type")
 	}
 
-	if typ == "" {
-		return "", errors.New("dialects: unknown column type")
-	} else {
-		return typ, nil
-	}
+	return typ, nil
 }
 
 func (m MySql) ColumnOptionToString(co *sb.ColumnOption) (string, error) {
