@@ -105,13 +105,11 @@ func (m Postgresql) ColumnTypeToString(cc sb.ColumnConfig) (string, error) {
 		typ = "BOOLEAN"
 	case sb.ColumnTypeBytes:
 		typ = "BYTEA"
+	default:
+		return "", errors.New("dialects: unknown column type")
 	}
 
-	if typ == "" {
-		return "", errors.New("dialects: unknown column type")
-	} else {
-		return typ, nil
-	}
+	return typ, nil
 }
 
 func (m Postgresql) ColumnOptionToString(co *sb.ColumnOption) (string, error) {
