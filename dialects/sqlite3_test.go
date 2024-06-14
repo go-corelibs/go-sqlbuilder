@@ -110,7 +110,7 @@ func TestSqlite3(t *testing.T) {
 			},
 			{
 				sqlbuilder.DateColumn("date_column", &sqlbuilder.ColumnOption{}),
-				`DATE`,
+				`DATETIME`,
 				ShouldBeNil,
 			},
 		} {
@@ -194,7 +194,7 @@ func TestSqlite3(t *testing.T) {
 			},
 			{
 				&sqlbuilder.TableOption{Unique: [][]string{{"one"}, {"two"}}},
-				`UNIQUE("one") UNIQUE("two")`,
+				`UNIQUE("one"), UNIQUE("two")`,
 				ShouldBeNil,
 			},
 		} {
