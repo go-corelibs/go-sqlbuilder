@@ -5,8 +5,9 @@ VERSION_TAGS += MAIN
 MAIN_MK_SUMMARY := ${CORELIB_PKG}
 MAIN_MK_VERSION := v1.0.0
 
-GOTESTS_SKIP += Example
-GOTESTS_ARGV := .
+GOTESTS_SKIP   += Example
+COVER_PKG      := .,./dialects
+GOTESTS_ARGV   := . ./dialects
 CONVEY_EXCLUDE += integration_test
 
 include CoreLibs.mk
