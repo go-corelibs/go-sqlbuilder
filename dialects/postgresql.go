@@ -9,7 +9,13 @@ import (
 	sb "github.com/go-corelibs/go-sqlbuilder"
 )
 
+var _ sb.Dialect = Postgresql{}
+
 type Postgresql struct{}
+
+func (m Postgresql) Name() string {
+	return "postgresql"
+}
 
 func (m Postgresql) QuerySuffix() string {
 	return ";"

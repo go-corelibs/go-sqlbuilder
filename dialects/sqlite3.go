@@ -8,7 +8,13 @@ import (
 	sb "github.com/go-corelibs/go-sqlbuilder"
 )
 
+var _ sb.Dialect = Sqlite{}
+
 type Sqlite struct{}
+
+func (m Sqlite) Name() string {
+	return "sqlite3"
+}
 
 func (m Sqlite) QuerySuffix() string {
 	return ";"

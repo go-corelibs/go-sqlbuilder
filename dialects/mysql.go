@@ -8,7 +8,13 @@ import (
 	sb "github.com/go-corelibs/go-sqlbuilder"
 )
 
+var _ sb.Dialect = MySql{}
+
 type MySql struct{}
+
+func (m MySql) Name() string {
+	return "mysql"
+}
 
 func (m MySql) QuerySuffix() string {
 	return ";"
