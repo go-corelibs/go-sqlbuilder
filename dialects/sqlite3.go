@@ -74,25 +74,21 @@ func (m Sqlite) ColumnTypeToString(cc sb.ColumnConfig) (string, error) {
 		return cc.Option().SqlType, nil
 	}
 
-	typ := ""
 	switch cc.Type() {
 	case sb.ColumnTypeInt:
-		typ = "INTEGER"
+		return "INTEGER", nil
 	case sb.ColumnTypeString:
-		typ = "TEXT"
+		return "TEXT", nil
 	case sb.ColumnTypeDate:
-		typ = "DATE"
+		return "DATETIME", nil
 	case sb.ColumnTypeFloat:
-		typ = "REAL"
+		return "REAL", nil
 	case sb.ColumnTypeBool:
-		typ = "BOOLEAN"
+		return "BOOLEAN", nil
 	case sb.ColumnTypeBytes:
-		typ = "BLOB"
-	}
-	if typ == "" {
+		return "BLOB", nil
+	default:
 		return "", errors.New("dialects: unknown column type")
-	} else {
-		return typ, nil
 	}
 }
 
@@ -130,22 +126,14 @@ func (m Sqlite) TableOptionToString(to *sb.TableOption) (string, error) {
 	return opt, nil
 }
 
-func (m Sqlite) tableOptionUnique(op [][]string) string {
-	opt := ""
-	first_op := true
-	for _, unique := range op {
-		if first_op {
-			first_op = false
-		} else {
-			opt += " "
+func (m Sqlite) tableOptionUnique(op [][]string) (opt string) {
+	for idx, unique := range op {
+		if idx > 0 {
+			opt += ", "
 		}
-
 		opt += "UNIQUE("
-		first := true
-		for _, col := range unique {
-			if first {
-				first = false
-			} else {
+		for jdx, col := range unique {
+			if jdx > 0 {
 				opt += ", "
 			}
 			opt += m.QuoteField(col)
