@@ -1,7 +1,17 @@
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
+github.com/go-corelibs/maths v1.2.0 h1:sQKBsZAhmSTq43XHZo7IyUlCJekgFhJHz/jc6355GqU=
+github.com/go-corelibs/maths v1.2.0/go.mod h1:AGg83e+nOjEqCvfrwDMGTu/DvSrs0bWLZ1IZc/fN5RM=
+github.com/go-corelibs/values v1.2.0 h1:W+iktCWF3Ysdx12ir8Xve/oF00T4+5gwdWs0F3VC1vc=
+github.com/go-corelibs/values v1.2.0/go.mod h1:zhlreI/N+FYNyTMXofbdWUIM5Pjj12oeYXOecFAozgs=
+github.com/go-corelibs/x-text v0.14.2 h1:McEvF3wNe6ADgkoCDRfJlM+b5r4RazbZku1PyTObpuw=
+github.com/go-corelibs/x-text v0.14.2/go.mod h1:To1kw/3Z0HhBG8KrYsCdWZi3vi+JFg9/qDc9FpLR7dg=
 github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
 github.com/go-sql-driver/mysql v1.8.1/go.mod h1:wEBSXgmK//2ZFJyE+qWnIsVGmvmEKlqwuVSjsCm7DZg=
+github.com/gohobby/assert v0.0.0-20211104143739-08694b1ea893 h1:wFd4Td0Bky4UbXOtyMu2QpYVjRQ+GHr34Z95ED7NtcI=
+github.com/gohobby/assert v0.0.0-20211104143739-08694b1ea893/go.mod h1:3j4Mu+o1MgUrSlyEI5IHzBEzmz5nngurQmAf80ePv6Y=
+github.com/gohobby/deepcopy v1.0.2 h1:mLYy/jucqPo0plf5/C3Dto8aGOaeDBjBdT+Bc2kRiQs=
+github.com/gohobby/deepcopy v1.0.2/go.mod h1:kabfMSIWbn2w+Kx3L4BF25yqmN8rjHeyY9SCDTylyFQ=
 github.com/gopherjs/gopherjs v1.17.2 h1:fQnZVsXk8uxXIStYb0N4bGk7jeyTalG/wsZjQ25dO0g=
 github.com/gopherjs/gopherjs v1.17.2/go.mod h1:pRRIvn/QzFLrKfvEz3qUuEhtE/zLCWfreZ6J5gM2i+k=
 github.com/jtolds/gls v4.20.0+incompatible h1:xdiiI2gbIgH/gLH7ADydsJ1uDOEzR8yvV7C0MuV77Wo=
