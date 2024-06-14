@@ -21,38 +21,22 @@
 
 package sqlbuilder
 
-import (
-	"reflect"
-	"testing"
-)
+type cCreateIndexColumnList []Column
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
+func (c cCreateIndexColumnList) serialize(b *builder) {
+	first := true
+	for _, column := range c {
+		if first {
+			first = false
+		} else {
+			b.Append(", ")
+		}
+		cc := column.config()
+		b.AppendItem(cc)
 	}
-	fnImplColumn(&cColumnImpl{})
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
-
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
-	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
-	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+func (c cCreateIndexColumnList) Describe() (output string) {
+	// not implemented yet
+	return
 }

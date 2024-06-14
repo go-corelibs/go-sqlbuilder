@@ -22,37 +22,34 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"fmt"
+	"strings"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
+// ColumnList represents list of Column.
+type ColumnList []Column
+
+func (c ColumnList) serialize(b *builder) {
+	for idx, column := range c {
+		if column == nil {
+			b.SetError(newError("column is not found."))
+			return
+		}
+		if idx > 0 {
+			b.Append(", ")
+		}
+		b.Append(b.dialect.QuoteField(column.column_name()))
 	}
-	fnImplColumn(&cColumnImpl{})
+	return
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
-
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+func (c ColumnList) Describe() (output string) {
+	var parts []string
+	for idx, column := range c {
+		if column == nil {
+			return fmt.Sprintf("(error: column #%d not found)", idx+1)
+		}
+		parts = append(parts, column.column_name())
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
-	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+	return strings.Join(parts, ", ")
 }

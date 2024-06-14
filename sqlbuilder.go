@@ -27,44 +27,11 @@ package sqlbuilder
 
 import (
 	"bytes"
-	"fmt"
 )
 
-var _dialect Dialect = nil
-
-// Star reprecents * column.
-var Star Column = &columnImpl{nil, nil}
-
-// Statement reprecents a statement(SELECT/INSERT/UPDATE and other)
+// Statement represents an SQL statement
 type Statement interface {
 	ToSql() (query string, attrs []interface{}, err error)
-}
-
-type serializable interface {
-	serialize(b *builder)
-}
-
-// Dialect encapsulates behaviors that differ across SQL database.
-type Dialect interface {
-	QuerySuffix() string
-	BindVar(i int) string
-	QuoteField(field interface{}) string
-	ColumnTypeToString(ColumnConfig) (string, error)
-	ColumnOptionToString(*ColumnOption) (string, error)
-	TableOptionToString(*TableOption) (string, error)
-}
-
-// SetDialect sets dialect for SQL server.
-// Must set dialect at first.
-func SetDialect(opt Dialect) {
-	_dialect = opt
-}
-
-func dialect() Dialect {
-	if _dialect == nil {
-		panic(newError("default dialect is not set. Please call SetDialect() first."))
-	}
-	return _dialect
 }
 
 type builder struct {
@@ -156,20 +123,4 @@ func (b *builder) AppendItem(part serializable) {
 		return
 	}
 	part.serialize(b)
-}
-
-type errors struct {
-	fmt  string
-	args []interface{}
-}
-
-func newError(fmt string, args ...interface{}) *errors {
-	return &errors{
-		fmt:  fmt,
-		args: args,
-	}
-}
-
-func (err *errors) Error() string {
-	return fmt.Sprintf("sqlbuilder: "+err.fmt, err.args...)
 }

@@ -38,7 +38,29 @@ func TestBuildable(t *testing.T) {
 		IntColumn("count", nil),
 	)
 
-	b := NewBuildable(TestDialect{})
+	d := Dialect(TestingDialect{})
+	b := NewBuildable(d)
+
+	Convey("Buildable Methods", t, func() {
+
+		So(b.Dialect(), ShouldEqual, d)
+
+		//tb2 := b.NewTable("TABLE_2", &TableOption{}, IntColumn("id", &ColumnOption{PrimaryKey: true}))
+		//So(tb2, ShouldNotBeNil)
+		//So(tb2.Name(), ShouldEqual, "TABLE_2")
+		//So(b.T("TABLE_2"), ShouldEqual, tb2)
+		//So(b.T("NOPE"), ShouldBeNil)
+
+		//tb2a := NewTable("TABLE_2", &TableOption{}, IntColumn("id", &ColumnOption{PrimaryKey: true}), StringColumn("data", &ColumnOption{}))
+		//So(tb2a, ShouldNotBeNil)
+		//So(tb2a.Name(), ShouldEqual, "TABLE_2")
+		//So(b.T("TABLE_2"), ShouldNotEqual, tb2a)
+		//So(b.SetTable(tb2a), ShouldBeTrue)
+		//So(b.T("TABLE_2"), ShouldEqual, tb2a)
+
+		//So(b.ListTables(), ShouldEqual, []string{"TABLE_2"})
+
+	})
 
 	Convey("AlterTable", t, func() {
 		So(b, ShouldNotBeNil)
@@ -110,5 +132,75 @@ func TestBuildable(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(argv, ShouldBeEmpty)
 		So(sql, ShouldEqual, `SELECT * FROM "TABLE_A";`)
+
+	})
+
+	Convey("Columns", t, func() {
+		table := NewTable(
+			"TABLE_A",
+			&TableOption{},
+			IntColumn("id", &ColumnOption{
+				PrimaryKey: true,
+			}),
+			StringColumn("thing", nil),
+			IntColumn("count", nil),
+		)
+		c := table.C("thing").As("alias")
+		So(c, ShouldNotBeNil)
+		Select(table).Columns(c).Where(c.Eq("stuff"))
+	})
+
+	Convey("Joined Tables", t, func() {
+		t0 := NewTable(
+			"TABLE_0",
+			&TableOption{},
+			IntColumn("id", &ColumnOption{
+				PrimaryKey: true,
+			}),
+			StringColumn("thing", nil),
+			IntColumn("count", nil),
+		)
+		t1 := NewTable(
+			"TABLE_1",
+			&TableOption{},
+			IntColumn("id", &ColumnOption{
+				PrimaryKey: true,
+			}),
+			StringColumn("other", nil),
+			IntColumn("num", nil),
+		)
+
+		// SELECT TABLE_A.id, TABLE_A.thing, TABLE_0.thing, TABLE_1.thing
+		// FROM TABLE_A
+		// INNER JOIN TABLE_0 ON TABLE_A.id = TABLE_0.num
+		// INNER JOIN TABLE_1 ON TABLE_A.id = TABLE_1.num;
+
+		joined := tbl.InnerJoin(t0, tbl.C("id").Eq(t0.C("count")))
+		So(joined.Describe(), ShouldEqual, `TABLE_A
+	.Column[int]("id": PrimaryKey)
+	.Column[string]("thing")
+	.Column[int]("count")
+	INNER JOIN TABLE_0 ON (id = count)`)
+
+		again := joined.InnerJoin(t1, tbl.C("id").Eq(t1.C("num")))
+		So(again.Describe(), ShouldEqual, `TABLE_A
+	.Column[int]("id": PrimaryKey)
+	.Column[string]("thing")
+	.Column[int]("count")
+	INNER JOIN TABLE_0 ON (id = count)
+	INNER JOIN TABLE_1 ON (id = num)`)
+
+		sql, argv, err := Select(again).
+			Columns(tbl.C("id")).
+			ToSql()
+		So(err, ShouldBeNil)
+		So(argv, ShouldEqual, []interface{}{})
+		So(sql, ShouldEqual, ``+
+			`SELECT "TABLE_A"."id" `+
+			`FROM "TABLE_A" `+
+			`INNER JOIN "TABLE_0" ON "TABLE_A"."id"="TABLE_0"."count" `+
+			`INNER JOIN "TABLE_1" ON "TABLE_A"."id"="TABLE_1"."num";`,
+		)
+
 	})
 }

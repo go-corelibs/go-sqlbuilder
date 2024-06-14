@@ -63,7 +63,7 @@ type conditionTestCase struct {
 }
 
 func (testCase conditionTestCase) Run() (message string, args []interface{}, ok bool) {
-	bldr := newBuilder(TestDialect{})
+	bldr := newBuilder(TestingDialect{})
 	testCase.cond.serialize(bldr)
 	if len(testCase.errmsg) != 0 {
 		if bldr.err == nil {

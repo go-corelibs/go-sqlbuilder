@@ -22,37 +22,24 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"strings"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
+type cSqlFuncColumnList []Column
+
+func (c cSqlFuncColumnList) serialize(b *builder) {
+	for idx, part := range c {
+		if idx > 0 {
+			b.Append(", ")
+		}
+		part.serialize(b)
 	}
-	fnImplColumn(&cColumnImpl{})
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
-
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+func (c cSqlFuncColumnList) Describe() (output string) {
+	var parts []string
+	for _, column := range c {
+		parts = append(parts, column.column_name())
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
-	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+	return strings.Join(parts, ", ")
 }

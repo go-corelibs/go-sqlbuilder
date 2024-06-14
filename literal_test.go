@@ -93,7 +93,7 @@ func TestLiteralConvert(t *testing.T) {
 		}}
 
 	for num, c := range cases {
-		val, err := c.lit.(*literalImpl).converted()
+		val, err := c.lit.(*cLiteralImpl).converted()
 		if !reflect.DeepEqual(c.out, val) {
 			t.Errorf("failed on %d", num)
 		}
@@ -170,7 +170,7 @@ func TestLiteralString(t *testing.T) {
 		}}
 
 	for num, c := range cases {
-		val := c.lit.(*literalImpl).string()
+		val := c.lit.(*cLiteralImpl).string()
 		if c.out != val {
 			t.Errorf("failed on %d", num)
 		}

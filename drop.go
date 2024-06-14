@@ -21,15 +21,15 @@
 
 package sqlbuilder
 
-// IDropTableStatement is the Buildable interface wrapping of DeleteTable
-type IDropTableStatement interface {
+// DropTableBuilder is the Buildable interface wrapping of DeleteTable
+type DropTableBuilder interface {
 	ToSql() (query string, args []interface{}, err error)
 
 	privateDropTable()
 }
 
-// DropTableStatement represents a "DROP TABLE" statement.
-type DropTableStatement struct {
+// cDropTable represents a "DROP TABLE" statement.
+type cDropTable struct {
 	table Table
 
 	err error
@@ -38,36 +38,36 @@ type DropTableStatement struct {
 }
 
 // DropTable returns new "DROP TABLE" statement. The table is Table object to drop.
-func DropTable(tbl Table) IDropTableStatement {
+func DropTable(tbl Table) DropTableBuilder {
 	return dropTable(tbl, dialect())
 }
 
-func dropTable(tbl Table, d Dialect) *DropTableStatement {
+func dropTable(tbl Table, d Dialect) *cDropTable {
 	if d == nil {
 		d = dialect()
 	}
 	if tbl == nil {
-		return &DropTableStatement{
+		return &cDropTable{
 			err: newError("table is nil."),
 		}
 	}
-	if _, ok := tbl.(*table); !ok {
-		return &DropTableStatement{
+	if _, ok := tbl.(*cTable); !ok {
+		return &cDropTable{
 			err: newError("table is not natural table."),
 		}
 	}
-	return &DropTableStatement{
+	return &cDropTable{
 		table:   tbl,
 		dialect: d,
 	}
 }
 
-func (b *DropTableStatement) privateDropTable() {
+func (b *cDropTable) privateDropTable() {
 	// nop
 }
 
 // ToSql generates query string, placeholder arguments, and returns err on errors.
-func (b *DropTableStatement) ToSql() (query string, args []interface{}, err error) {
+func (b *cDropTable) ToSql() (query string, args []interface{}, err error) {
 	bldr := newBuilder(b.dialect)
 	defer func() {
 		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()

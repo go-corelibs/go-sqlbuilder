@@ -21,38 +21,40 @@
 
 package sqlbuilder
 
-import (
-	"reflect"
-	"testing"
-)
+type cCreateTableColumnList []Column
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
+func (c cCreateTableColumnList) serialize(b *builder) {
+	first := true
+	for _, column := range c {
+		if first {
+			first = false
+		} else {
+			b.Append(", ")
+		}
+		cc := column.config()
+
+		// Column name
+		b.AppendItem(cc)
+		b.Append(" ")
+
+		// SQL data name
+		str, err := b.dialect.ColumnTypeToString(cc)
+		if err != nil {
+			b.SetError(err)
+		}
+		b.Append(str)
+
+		str, err = b.dialect.ColumnOptionToString(cc.Option())
+		if err != nil {
+			b.SetError(err)
+		}
+		if len(str) != 0 {
+			b.Append(" " + str)
+		}
 	}
-	fnImplColumn(&cColumnImpl{})
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
-
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
-	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
-	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+func (c cCreateTableColumnList) Describe() (output string) {
+	// not implemented yet
+	return
 }

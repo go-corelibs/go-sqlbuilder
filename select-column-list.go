@@ -22,37 +22,41 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"strings"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
+type cSelectColumnList []Column
+
+func (c cSelectColumnList) serialize(b *builder) {
+	if len(c) == 0 {
+		b.AppendItem(Star)
+		return
 	}
-	fnImplColumn(&cColumnImpl{})
+	for idx, col := range c {
+		if idx > 0 {
+			b.Append(", ")
+		}
+		if ac, ok := col.(iAliasedColumn); ok {
+			b.AppendItem(ac.source())
+			b.Append(" AS ")
+			b.AppendItem(col)
+		} else {
+			b.AppendItem(col)
+		}
+	}
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
-
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+func (c cSelectColumnList) Describe() (output string) {
+	if len(c) == 0 {
+		return "*"
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+	var parts []string
+	for _, col := range c {
+		if ac, ok := col.(iAliasedColumn); ok {
+			parts = append(parts, ac.source().column_name()+" AS "+col.column_name())
+			continue
+		}
+		parts = append(parts, col.column_name())
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+	return strings.Join(parts, ", ")
 }

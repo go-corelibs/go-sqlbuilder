@@ -21,38 +21,28 @@
 
 package sqlbuilder
 
-import (
-	"reflect"
-	"testing"
-)
+var _dialect Dialect = nil
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+// Dialect encapsulates behaviors that differ across SQL database.
+type Dialect interface {
+	Name() string
+	QuerySuffix() string
+	BindVar(i int) string
+	QuoteField(field interface{}) string
+	ColumnTypeToString(ColumnConfig) (string, error)
+	ColumnOptionToString(*ColumnOption) (string, error)
+	TableOptionToString(*TableOption) (string, error)
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+// SetDialect sets dialect for SQL server.
+// Must set dialect at first.
+func SetDialect(opt Dialect) {
+	_dialect = opt
+}
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+func dialect() Dialect {
+	if _dialect == nil {
+		panic(newError("default dialect is not set. Please call SetDialect() first."))
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
-	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+	return _dialect
 }

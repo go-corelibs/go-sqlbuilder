@@ -70,7 +70,7 @@ func TestCreate(t *testing.T) {
 		}),
 	)
 	tableJoined := table1.InnerJoin(table2, table1.C("test1").Eq(table2.C("id")))
-	tableZeroColumns := &table{
+	tableZeroColumns := &cTable{
 		name:    "ZERO_TABLE",
 		columns: make([]Column, 0),
 	}
@@ -87,7 +87,7 @@ func TestCreate(t *testing.T) {
 		errmsg: "",
 	}, {
 		stmt:   CreateTable(table3).IfNotExists(),
-		query:  `CREATE TABLE IF NOT EXISTS "TABLE_C" ( "id" INTEGER PRIMARY KEY AUTOINCREMENT, "test1" INTEGER UNIQUE, "test2" TEXT ) UNIQUE("test1", "test2");`,
+		query:  `CREATE TABLE IF NOT EXISTS "TABLE_C" ( "id" INTEGER PRIMARY KEY AUTOINCREMENT, "test1" INTEGER UNIQUE, "test2" TEXT, UNIQUE("test1", "test2") );`,
 		args:   []interface{}{},
 		errmsg: "",
 	}, {
@@ -99,27 +99,27 @@ func TestCreate(t *testing.T) {
 		stmt:   CreateTable(tableZeroColumns),
 		query:  ``,
 		args:   []interface{}{},
-		errmsg: "sqlbuilder: CreateTableStatement needs one or more columns.",
+		errmsg: "sqlbuilder: CreateTable needs one or more columns.",
 	}, {
 		stmt:   CreateTable(nil),
 		query:  ``,
-		args:   []interface{}{},
+		args:   []interface{}(nil),
 		errmsg: "sqlbuilder: table is nil.",
 	}, {
 		stmt:   CreateTable(tableJoined),
 		query:  ``,
-		args:   []interface{}{},
+		args:   []interface{}(nil),
 		errmsg: "sqlbuilder: CreateTable can use only natural table.",
 	}, {
 		stmt:   CreateIndex(table1).Columns(table1.C("test1"), table1.C("test2")),
 		query:  ``,
 		args:   []interface{}{},
-		errmsg: "sqlbuilder: name was not setted.",
+		errmsg: "sqlbuilder: name was not set.",
 	}, {
 		stmt:   CreateIndex(table1).Name("I_TABLE_A"),
 		query:  ``,
 		args:   []interface{}{},
-		errmsg: "sqlbuilder: columns was not setted.",
+		errmsg: "sqlbuilder: columns was not set.",
 	}}
 
 	for num, c := range cases {

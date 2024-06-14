@@ -31,8 +31,8 @@ type InsertBuilder interface {
 	privateInsert()
 }
 
-// InsertStatement represents a INSERT statement.
-type InsertStatement struct {
+// cInsert represents a INSERT statement.
+type cInsert struct {
 	columns ColumnList
 	values  []literal
 	into    Table
@@ -47,21 +47,21 @@ func Insert(into Table) InsertBuilder {
 	return insert(into, dialect())
 }
 
-func insert(into Table, d Dialect) *InsertStatement {
+func insert(into Table, d Dialect) *cInsert {
 	if d == nil {
 		d = dialect()
 	}
 	if into == nil {
-		return &InsertStatement{
+		return &cInsert{
 			err: newError("table is nil."),
 		}
 	}
-	if _, ok := into.(*table); !ok {
-		return &InsertStatement{
+	if _, ok := into.(*cTable); !ok {
+		return &cInsert{
 			err: newError("table is not natural table."),
 		}
 	}
-	return &InsertStatement{
+	return &cInsert{
 		into:    into,
 		columns: make(ColumnList, 0),
 		values:  make([]literal, 0),
@@ -69,13 +69,13 @@ func insert(into Table, d Dialect) *InsertStatement {
 	}
 }
 
-func (b *InsertStatement) privateInsert() {
+func (b *cInsert) privateInsert() {
 	// nop
 }
 
-// Columns sets columns for insert.  This overwrite old results of Columns() or Set().
+// Columns sets columns for insert.  This overwrites old results of Columns() or Set().
 // If not set this, get error on ToSql().
-func (b *InsertStatement) Columns(columns ...Column) InsertBuilder {
+func (b *cInsert) Columns(columns ...Column) InsertBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -89,8 +89,8 @@ func (b *InsertStatement) Columns(columns ...Column) InsertBuilder {
 	return b
 }
 
-// Values sets VALUES clause. This overwrite old results of Values() or Set().
-func (b *InsertStatement) Values(values ...interface{}) InsertBuilder {
+// Values sets VALUES clause. This overwrites old results of Values() or Set().
+func (b *cInsert) Values(values ...interface{}) InsertBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -102,9 +102,9 @@ func (b *InsertStatement) Values(values ...interface{}) InsertBuilder {
 	return b
 }
 
-// Set sets the column and value togeter.
+// Set sets the column and value together.
 // Set cannot be called with Columns() or Values() in a statement.
-func (b *InsertStatement) Set(column Column, value interface{}) InsertBuilder {
+func (b *cInsert) Set(column Column, value interface{}) InsertBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -118,7 +118,7 @@ func (b *InsertStatement) Set(column Column, value interface{}) InsertBuilder {
 }
 
 // ToSql generates query string, placeholder arguments, and returns err on errors.
-func (b *InsertStatement) ToSql() (query string, args []interface{}, err error) {
+func (b *cInsert) ToSql() (query string, args []interface{}, err error) {
 	bldr := newBuilder(b.dialect)
 	defer func() {
 		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()

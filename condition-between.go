@@ -22,37 +22,50 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"fmt"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+type cConditionBetween struct {
+	left   serializable
+	lower  serializable
+	higher serializable
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+func newBetweenCondition(left Column, low, high interface{}) Condition {
+	low_literal := toLiteral(low)
+	high_literal := toLiteral(high)
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+	return &cConditionBetween{
+		left:   left,
+		lower:  low_literal,
+		higher: high_literal,
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+}
+
+func (c *cConditionBetween) serialize(b *builder) {
+	b.AppendItem(c.left)
+	b.Append(" BETWEEN ")
+	b.AppendItem(c.lower)
+	b.Append(" AND ")
+	b.AppendItem(c.higher)
+	return
+}
+
+func (c *cConditionBetween) columns() []Column {
+	list := make([]Column, 0)
+	if col, ok := c.left.(Column); ok {
+		list = append(list, col)
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
+	if col, ok := c.lower.(Column); ok {
+		list = append(list, col)
 	}
+	if col, ok := c.higher.(Column); ok {
+		list = append(list, col)
+	}
+	return list
+}
+
+func (c *cConditionBetween) Describe() (output string) {
+	output += fmt.Sprintf("%s BETWEEN (%q, %q)", c.left.Describe(), c.lower, c.higher)
+	return
 }

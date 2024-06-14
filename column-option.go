@@ -22,37 +22,52 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+// ColumnOption represents option for a column. ex: primary key.
+type ColumnOption struct {
+	PrimaryKey    bool
+	NotNull       bool
+	Unique        bool
+	AutoIncrement bool
+	Size          int
+	SqlType       string
+	Default       interface{}
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+func (c ColumnOption) Describe() (output string) {
+	var parts []string
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+	if c.PrimaryKey {
+		parts = append(parts, "PrimaryKey")
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+
+	if c.NotNull {
+		parts = append(parts, "NotNull")
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
+
+	if c.Unique {
+		parts = append(parts, "Unique")
 	}
+
+	if c.AutoIncrement {
+		parts = append(parts, "AutoIncrement")
+	}
+
+	if c.Size > 0 {
+		parts = append(parts, "Size("+strconv.Itoa(c.Size)+")")
+	}
+
+	if c.SqlType != "" {
+		parts = append(parts, "SqlType("+strconv.Quote(c.SqlType)+")")
+	}
+
+	if c.Default != nil {
+		parts = append(parts, fmt.Sprintf("Default(%q)", c.Default))
+	}
+
+	return strings.Join(parts, ", ")
 }

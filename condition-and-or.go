@@ -22,37 +22,62 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"strings"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+type cConditionAndOr struct {
+	connector  string
+	conditions []Condition
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+// And creates a combined condition with "AND" operator.
+func And(conditions ...Condition) Condition {
+	return &cConditionAndOr{
+		connector:  "AND",
+		conditions: conditions,
+	}
+}
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+// Or creates a combined condition with "OR" operator.
+func Or(conditions ...Condition) Condition {
+	return &cConditionAndOr{
+		connector:  "OR",
+		conditions: conditions,
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+}
+
+func (c *cConditionAndOr) serialize(b *builder) {
+	first := true
+	for _, cond := range c.conditions {
+		if first {
+			first = false
+		} else {
+			b.Append(" " + c.connector + " ")
+		}
+		if _, ok := cond.(*cConditionAndOr); ok {
+			// if condition is "AND" or "OR"
+			b.Append("( ")
+			b.AppendItem(cond)
+			b.Append(" )")
+		} else {
+			b.AppendItem(cond)
+		}
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
+	return
+}
+
+func (c *cConditionAndOr) columns() []Column {
+	list := make([]Column, 0)
+	for _, cond := range c.conditions {
+		list = append(list, cond.columns()...)
 	}
+	return list
+}
+
+func (c *cConditionAndOr) Describe() (output string) {
+	var parts []string
+	for _, condition := range c.conditions {
+		parts = append(parts, condition.Describe())
+	}
+	return strings.Join(parts, " "+c.connector+" ")
 }

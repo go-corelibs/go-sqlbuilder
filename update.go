@@ -1,19 +1,40 @@
+// Copyright (c) 2014 umisama <Takaaki IBARAKI>
+// Copyright (c)  The Go-CoreLibs Authors
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 package sqlbuilder
 
-// IUpdateStatement is the Buildable interface wrapping of Update
-type IUpdateStatement interface {
-	Set(col Column, val interface{}) IUpdateStatement
-	Where(cond Condition) IUpdateStatement
-	Limit(limit int) IUpdateStatement
-	Offset(offset int) IUpdateStatement
-	OrderBy(desc bool, columns ...Column) IUpdateStatement
+// UpdateBuilder is the Buildable interface wrapping of Update
+type UpdateBuilder interface {
+	Set(col Column, val interface{}) UpdateBuilder
+	Where(cond Condition) UpdateBuilder
+	Limit(limit int) UpdateBuilder
+	Offset(offset int) UpdateBuilder
+	OrderBy(desc bool, columns ...Column) UpdateBuilder
 	ToSql() (query string, args []interface{}, err error)
 
 	privateUpdate()
 }
 
-// UpdateStatement represents a UPDATE statement.
-type UpdateStatement struct {
+// cUpdate represents a UPDATE statement.
+type cUpdate struct {
 	table   Table
 	set     []serializable
 	where   Condition
@@ -27,155 +48,129 @@ type UpdateStatement struct {
 }
 
 // Update returns new UPDATE statement. The table is Table object to update.
-func Update(tbl Table) IUpdateStatement {
+func Update(tbl Table) UpdateBuilder {
 	return update(tbl, dialect())
 }
 
-func update(tbl Table, d Dialect) *UpdateStatement {
+func update(tbl Table, d Dialect) *cUpdate {
 	if d == nil {
 		d = dialect()
 	}
 	if tbl == nil {
-		return &UpdateStatement{
+		return &cUpdate{
 			err: newError("table is nil."),
 		}
 	}
-	return &UpdateStatement{
+	return &cUpdate{
 		table:   tbl,
 		set:     make([]serializable, 0),
 		dialect: d,
 	}
 }
 
-func (b *UpdateStatement) privateUpdate() {
+func (c *cUpdate) privateUpdate() {
 	// nop
 }
 
 // Set sets SETS clause like col=val.  Call many time for update multi columns.
-func (b *UpdateStatement) Set(col Column, val interface{}) IUpdateStatement {
-	if b.err != nil {
-		return b
+func (c *cUpdate) Set(col Column, val interface{}) UpdateBuilder {
+	if c.err != nil {
+		return c
 	}
-	if !b.table.hasColumn(col) {
-		b.err = newError("column not found in FROM.")
-		return b
+	if !c.table.hasColumn(col) {
+		c.err = newError("column not found in FROM.")
+		return c
 	}
-	b.set = append(b.set, newUpdateValue(col, val))
-	return b
+	c.set = append(c.set, newUpdateValue(col, val))
+	return c
 }
 
 // Where sets WHERE clause.  The cond is filter condition.
-func (b *UpdateStatement) Where(cond Condition) IUpdateStatement {
-	if b.err != nil {
-		return b
+func (c *cUpdate) Where(cond Condition) UpdateBuilder {
+	if c.err != nil {
+		return c
 	}
-	b.where = cond
-	return b
+	c.where = cond
+	return c
 }
 
-// Limit sets LIMIT clause.
-func (b *UpdateStatement) Limit(limit int) IUpdateStatement {
-	if b.err != nil {
-		return b
+// Limit sets LIMIT clause
+func (c *cUpdate) Limit(limit int) UpdateBuilder {
+	if c.err != nil {
+		return c
 	}
-	b.limit = limit
-	return b
+	c.limit = limit
+	return c
 }
 
-// Limit sets OFFSET clause.
-func (b *UpdateStatement) Offset(offset int) IUpdateStatement {
-	if b.err != nil {
-		return b
+// Offset sets OFFSET clause
+func (c *cUpdate) Offset(offset int) UpdateBuilder {
+	if c.err != nil {
+		return c
 	}
-	b.offset = offset
-	return b
+	c.offset = offset
+	return c
 }
 
-// OrderBy sets "ORDER BY" clause. Use descending order if the desc is true, by the columns.
-func (b *UpdateStatement) OrderBy(desc bool, columns ...Column) IUpdateStatement {
-	if b.err != nil {
-		return b
+// OrderBy sets "ORDER BY" clause. Use descending order if the desc is true, by the columns
+func (c *cUpdate) OrderBy(desc bool, columns ...Column) UpdateBuilder {
+	if c.err != nil {
+		return c
 	}
-	if b.orderBy == nil {
-		b.orderBy = make([]serializable, 0)
+	if c.orderBy == nil {
+		c.orderBy = make([]serializable, 0)
 	}
 
-	for _, c := range columns {
-		b.orderBy = append(b.orderBy, newOrderBy(desc, c))
+	for _, column := range columns {
+		c.orderBy = append(c.orderBy, newOrderBy(desc, column))
 	}
-	return b
+	return c
 }
 
-// ToSql generates query string, placeholder arguments, and returns err on errors.
-func (b *UpdateStatement) ToSql() (query string, args []interface{}, err error) {
-	bldr := newBuilder(b.dialect)
+// ToSql generates query string, placeholder arguments, and returns err on errors
+func (c *cUpdate) ToSql() (query string, args []interface{}, err error) {
+	b := newBuilder(c.dialect)
 	defer func() {
-		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()
+		query, args, err = b.Query(), b.Args(), b.Err()
 	}()
-	if b.err != nil {
-		bldr.SetError(b.err)
+	if c.err != nil {
+		b.SetError(c.err)
 		return
 	}
 
 	// UPDATE TABLE SET (COLUMN=VALUE)
-	bldr.Append("UPDATE ")
-	bldr.AppendItem(b.table)
+	b.Append("UPDATE ")
+	b.AppendItem(c.table)
 
-	bldr.Append(" SET ")
-	if len(b.set) != 0 {
-		bldr.AppendItems(b.set, ", ")
+	b.Append(" SET ")
+	if len(c.set) != 0 {
+		b.AppendItems(c.set, ", ")
 	} else {
-		bldr.SetError(newError("length of sets is 0."))
+		b.SetError(newError("length of sets is 0."))
 	}
 
 	// WHERE
-	if b.where != nil {
-		bldr.Append(" WHERE ")
-		bldr.AppendItem(b.where)
+	if c.where != nil {
+		b.Append(" WHERE ")
+		b.AppendItem(c.where)
 	}
 
 	// ORDER BY
-	if b.orderBy != nil {
-		bldr.Append(" ORDER BY ")
-		bldr.AppendItems(b.orderBy, ", ")
+	if c.orderBy != nil {
+		b.Append(" ORDER BY ")
+		b.AppendItems(c.orderBy, ", ")
 	}
 
 	// LIMIT
-	if b.limit != 0 {
-		bldr.Append(" LIMIT ")
-		bldr.AppendValue(b.limit)
+	if c.limit != 0 {
+		b.Append(" LIMIT ")
+		b.AppendValue(c.limit)
 	}
 
 	// Offset
-	if b.offset != 0 {
-		bldr.Append(" OFFSET ")
-		bldr.AppendValue(b.offset)
+	if c.offset != 0 {
+		b.Append(" OFFSET ")
+		b.AppendValue(c.offset)
 	}
 	return
-}
-
-type updateValue struct {
-	col Column
-	val literal
-}
-
-func newUpdateValue(col Column, val interface{}) updateValue {
-	return updateValue{
-		col: col,
-		val: toLiteral(val),
-	}
-}
-
-func (m updateValue) serialize(bldr *builder) {
-	if !m.col.acceptType(m.val) {
-		bldr.SetError(newError("%s column not accept %T.",
-			m.col.config().Type().String(),
-			m.val.Raw(),
-		))
-		return
-	}
-
-	bldr.Append(bldr.dialect.QuoteField(m.col.column_name()))
-	bldr.Append("=")
-	bldr.AppendItem(m.val)
 }

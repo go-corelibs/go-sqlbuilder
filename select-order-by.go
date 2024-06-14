@@ -22,37 +22,37 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"fmt"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+type cSelectOrderBy struct {
+	column Column
+	desc   bool
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+func newOrderBy(desc bool, column Column) *cSelectOrderBy {
+	return &cSelectOrderBy{
+		column: column,
+		desc:   desc,
+	}
+}
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+func (c *cSelectOrderBy) serialize(b *builder) {
+	b.AppendItem(c.column)
+	if c.desc {
+		b.Append(" DESC")
+	} else {
+		b.Append(" ASC")
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+}
+
+func (c *cSelectOrderBy) Describe() (output string) {
+	var dir string
+	if c.desc {
+		dir = "DESC"
+	} else {
+		dir = "ASC"
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+	output += fmt.Sprintf("ORDER BY %q %q", c.column.column_name(), dir)
+	return
 }

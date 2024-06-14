@@ -22,37 +22,31 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"strconv"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+// TODO: TableOption.ForeignKey map[string]Column
+// TODO: convert TableOption to a buildable design pattern
+
+// TableOption represents constraint of a table.
+type TableOption struct {
+	Unique [][]string
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
-
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+// Describe returns a string representation of the TableOption
+func (t TableOption) Describe() (output string) {
+	if len(t.Unique) == 0 {
+		return
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+	for idx, list := range t.Unique {
+		output += ".Unique[" + strconv.Itoa(idx) + "]("
+		for jdx, key := range list {
+			if jdx > 0 {
+				output += ", "
+			}
+			output += strconv.Quote(key)
+		}
+		output += ")"
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
-	}
+	return
 }

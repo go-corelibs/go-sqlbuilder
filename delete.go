@@ -29,8 +29,8 @@ type DeleteBuilder interface {
 	privateDelete()
 }
 
-// DeleteStatement represents a DELETE statement.
-type DeleteStatement struct {
+// cDelete represents a DELETE statement.
+type cDelete struct {
 	from  Table
 	where Condition
 
@@ -44,32 +44,32 @@ func Delete(from Table) DeleteBuilder {
 	return deleteFn(from, dialect())
 }
 
-func deleteFn(from Table, d Dialect) *DeleteStatement {
+func deleteFn(from Table, d Dialect) *cDelete {
 	if d == nil {
 		d = dialect()
 	}
 	if from == nil {
-		return &DeleteStatement{
+		return &cDelete{
 			err: newError("from is nil."),
 		}
 	}
-	if _, ok := from.(*table); !ok {
-		return &DeleteStatement{
+	if _, ok := from.(*cTable); !ok {
+		return &cDelete{
 			err: newError("CreateTable can use only natural table."),
 		}
 	}
-	return &DeleteStatement{
+	return &cDelete{
 		from:    from,
 		dialect: d,
 	}
 }
 
-func (b *DeleteStatement) privateDelete() {
+func (b *cDelete) privateDelete() {
 	// nop
 }
 
 // Where sets WHERE clause. cond is filter condition.
-func (b *DeleteStatement) Where(cond Condition) DeleteBuilder {
+func (b *cDelete) Where(cond Condition) DeleteBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -84,7 +84,7 @@ func (b *DeleteStatement) Where(cond Condition) DeleteBuilder {
 }
 
 // ToSql generates query string, placeholder arguments, and returns err on errors.
-func (b *DeleteStatement) ToSql() (query string, args []interface{}, err error) {
+func (b *cDelete) ToSql() (query string, args []interface{}, err error) {
 	bldr := newBuilder(b.dialect)
 	defer func() {
 		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()

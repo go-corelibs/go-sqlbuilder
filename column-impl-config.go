@@ -22,37 +22,58 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"strconv"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+type cColumnImplConfig struct {
+	name string
+	typ  ColumnType
+	opt  *ColumnOption
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+func newColumnImplConfig(name string, typ ColumnType, opt *ColumnOption) *cColumnImplConfig {
+	if opt == nil {
+		opt = &ColumnOption{}
+	}
+	return &cColumnImplConfig{
+		name: name,
+		typ:  typ,
+		opt:  opt,
+	}
+}
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+func (c *cColumnImplConfig) Name() string {
+	return c.name
+}
+
+func (c *cColumnImplConfig) Type() ColumnType {
+	return c.typ
+}
+
+func (c *cColumnImplConfig) Option() *ColumnOption {
+	if c.opt == nil {
+		return &ColumnOption{}
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+	return c.opt
+}
+
+func (c *cColumnImplConfig) toColumn(table Table) Column {
+	return &cColumnImpl{
+		c, table,
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
+}
+
+func (c *cColumnImplConfig) serialize(b *builder) {
+	b.Append(b.dialect.QuoteField(c.name))
+	return
+}
+
+func (c *cColumnImplConfig) Describe() (output string) {
+	output += ".Column[" + c.typ.String() + "]("
+	output += strconv.Quote(c.name)
+	if v := c.opt.Describe(); v != "" {
+		output += ": " + v
 	}
+	output += ")"
+	return
 }

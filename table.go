@@ -20,37 +20,15 @@
 // THE SOFTWARE.
 
 package sqlbuilder
-type joinType int
 
-const (
-	inner_join joinType = iota
-	left_outer_join
-	right_outer_join
-	full_outer_join
+import (
+	"strings"
 )
-
-type table struct {
-	name    string
-	option  *TableOption
-	columns []Column
-}
-
-// TableOption reprecents constraint of a table.
-type TableOption struct {
-	Unique [][]string
-	//ForeignKey map[string]Column // will implement future
-}
-
-type joinTable struct {
-	typ   joinType
-	left  Table
-	right Table
-	on    Condition
-}
 
 // Table represents a table.
 type Table interface {
 	serializable
+	hasColumn(column Column) bool
 
 	// C returns table's column by the name.
 	C(name string) Column
@@ -82,7 +60,14 @@ type Table interface {
 	// The joined table can be handled in same way as single table.
 	FullOuterJoin(Table, Condition) Table
 
-	hasColumn(column Column) bool
+	// Describe returns a string representation of the complete structure
+	Describe() (output string)
+}
+
+type cTable struct {
+	name    string
+	option  *TableOption
+	columns []Column
 }
 
 // NewTable returns a new table named by the name.  Specify table columns by the column_config.
@@ -95,7 +80,7 @@ func NewTable(name string, option *TableOption, column_configs ...ColumnConfig) 
 		option = &TableOption{}
 	}
 
-	t := &table{
+	t := &cTable{
 		name:    name,
 		option:  option,
 		columns: make([]Column, 0, len(column_configs)),
@@ -111,12 +96,12 @@ func NewTable(name string, option *TableOption, column_configs ...ColumnConfig) 
 	return t
 }
 
-func (m *table) serialize(bldr *builder) {
-	bldr.Append(dialect().QuoteField(m.name))
+func (m *cTable) serialize(b *builder) {
+	b.Append(b.dialect.QuoteField(m.name))
 	return
 }
 
-func (m *table) C(name string) Column {
+func (m *cTable) C(name string) Column {
 	for _, column := range m.columns {
 		if column.column_name() == name {
 			return column
@@ -126,31 +111,31 @@ func (m *table) C(name string) Column {
 	return newErrorColumn(newError("column %s.%s was not found.", m.name, name))
 }
 
-func (m *table) Name() string {
+func (m *cTable) Name() string {
 	return m.name
 }
 
-func (m *table) SetName(name string) {
+func (m *cTable) SetName(name string) {
 	m.name = name
 }
 
-func (m *table) Columns() []Column {
+func (m *cTable) Columns() []Column {
 	return m.columns
 }
 
-func (m *table) Option() *TableOption {
+func (m *cTable) Option() *TableOption {
 	return m.option
 }
 
-func (m *table) AddColumnLast(cc ColumnConfig) error {
+func (m *cTable) AddColumnLast(cc ColumnConfig) error {
 	return m.addColumn(cc, len(m.columns))
 }
 
-func (m *table) AddColumnFirst(cc ColumnConfig) error {
+func (m *cTable) AddColumnFirst(cc ColumnConfig) error {
 	return m.addColumn(cc, 0)
 }
 
-func (m *table) AddColumnAfter(cc ColumnConfig, after Column) error {
+func (m *cTable) AddColumnAfter(cc ColumnConfig, after Column) error {
 	for i := range m.columns {
 		if m.columns[i] == after {
 			return m.addColumn(cc, i+1)
@@ -159,7 +144,7 @@ func (m *table) AddColumnAfter(cc ColumnConfig, after Column) error {
 	return newError("column not found.")
 }
 
-func (m *table) ChangeColumn(trg Column, cc ColumnConfig) error {
+func (m *cTable) ChangeColumn(trg Column, cc ColumnConfig) error {
 	for i := range m.columns {
 		if m.columns[i] == trg {
 			err := m.dropColumn(i)
@@ -176,7 +161,7 @@ func (m *table) ChangeColumn(trg Column, cc ColumnConfig) error {
 	return newError("column not found.")
 }
 
-func (m *table) ChangeColumnFirst(trg Column, cc ColumnConfig) error {
+func (m *cTable) ChangeColumnFirst(trg Column, cc ColumnConfig) error {
 	for i := range m.columns {
 		if m.columns[i] == trg {
 			err := m.dropColumn(i)
@@ -193,7 +178,7 @@ func (m *table) ChangeColumnFirst(trg Column, cc ColumnConfig) error {
 	return newError("column not found.")
 }
 
-func (m *table) ChangeColumnAfter(trg Column, cc ColumnConfig, after Column) error {
+func (m *cTable) ChangeColumnAfter(trg Column, cc ColumnConfig, after Column) error {
 	backup := make([]Column, len(m.columns))
 	copy(backup, m.columns)
 	found := false
@@ -225,7 +210,7 @@ func (m *table) ChangeColumnAfter(trg Column, cc ColumnConfig, after Column) err
 	return newError("column not found.")
 }
 
-func (m *table) addColumn(cc ColumnConfig, pos int) error {
+func (m *cTable) addColumn(cc ColumnConfig, pos int) error {
 	if len(m.columns) < pos || pos < 0 {
 		return newError("Invalid position.")
 	}
@@ -242,7 +227,7 @@ func (m *table) addColumn(cc ColumnConfig, pos int) error {
 	return nil
 }
 
-func (m *table) DropColumn(col Column) error {
+func (m *cTable) DropColumn(col Column) error {
 	for i := range m.columns {
 		if m.columns[i] == col {
 			return m.dropColumn(i)
@@ -251,7 +236,7 @@ func (m *table) DropColumn(col Column) error {
 	return newError("column not found.")
 }
 
-func (m *table) dropColumn(pos int) error {
+func (m *cTable) dropColumn(pos int) error {
 	if len(m.columns) < pos || pos < 0 {
 		return newError("Invalid position.")
 	}
@@ -267,170 +252,66 @@ func (m *table) dropColumn(pos int) error {
 	return nil
 }
 
-func (m *table) InnerJoin(right Table, on Condition) Table {
-	return &joinTable{
+func (m *cTable) InnerJoin(right Table, on Condition) Table {
+	return &cTableJoin{
 		left:  m,
 		right: right,
-		typ:   inner_join,
+		join:  gInnerJoin,
 		on:    on,
 	}
 }
 
-func (m *table) LeftOuterJoin(right Table, on Condition) Table {
-	return &joinTable{
+func (m *cTable) LeftOuterJoin(right Table, on Condition) Table {
+	return &cTableJoin{
 		left:  m,
 		right: right,
-		typ:   left_outer_join,
+		join:  gLeftOuterJoin,
 		on:    on,
 	}
 }
 
-func (m *table) RightOuterJoin(right Table, on Condition) Table {
-	return &joinTable{
+func (m *cTable) RightOuterJoin(right Table, on Condition) Table {
+	return &cTableJoin{
 		left:  m,
 		right: right,
-		typ:   right_outer_join,
+		join:  gRightOuterJoin,
 		on:    on,
 	}
 }
 
-func (m *table) FullOuterJoin(right Table, on Condition) Table {
-	return &joinTable{
+func (m *cTable) FullOuterJoin(right Table, on Condition) Table {
+	return &cTableJoin{
 		left:  m,
 		right: right,
-		typ:   full_outer_join,
+		join:  gFullOuterJoin,
 		on:    on,
 	}
 }
 
-func (m *table) hasColumn(trg Column) bool {
-	if cimpl, ok := trg.(*columnImpl); ok {
-		if trg == Star {
-			return true
-		}
-		for _, col := range m.columns {
-			if col == cimpl {
-				return true
-			}
-		}
-		return false
+func (m *cTable) hasColumn(target Column) bool {
+	if cimpl, ok := target.(*cColumnImpl); ok {
+		return cimpl.hasColumn(m)
 	}
-	if acol, ok := trg.(*aliasColumn); ok {
-		for _, col := range m.columns {
-			if col == acol.column {
-				return true
-			}
-		}
-		return false
+	if acol, ok := target.(*cColumnAlias); ok {
+		return acol.hasColumn(m)
 	}
-	if sqlfn, ok := trg.(*sqlFuncImpl); ok {
-		for _, fncol := range sqlfn.columns() {
-			find := false
-			for _, col := range m.columns {
-				if col == fncol {
-					find = true
-				}
-			}
-			if !find {
-				return false
-			}
-		}
-		return true
+	if sqlfn, ok := target.(*cSqlFunc); ok {
+		return sqlfn.hasColumn(m)
 	}
 	return false
 }
 
-func (m *joinTable) C(name string) Column {
-	l_col := m.left.C(name)
-	r_col := m.right.C(name)
-
-	_, l_err := l_col.(*errorColumn)
-	_, r_err := r_col.(*errorColumn)
-
-	switch {
-	case l_err && r_err:
-		return newErrorColumn(newError("column %s was not found.", name))
-	case l_err && !r_err:
-		return r_col
-	case !l_err && r_err:
-		return l_col
-	default:
-		return newErrorColumn(newError("column %s was duplicated.", name))
+func (m *cTable) Describe() (output string) {
+	output += m.name
+	if v := m.option.Describe(); v != "" {
+		output += "\n\t" + v
 	}
-}
-
-func (m *joinTable) Name() string {
-	return ""
-}
-
-func (m *joinTable) Columns() []Column {
-	return append(m.left.Columns(), m.right.Columns()...)
-}
-
-func (m *joinTable) Option() *TableOption {
-	return nil
-}
-
-func (m *joinTable) InnerJoin(right Table, on Condition) Table {
-	return &joinTable{
-		left:  m,
-		right: right,
-		typ:   inner_join,
-		on:    on,
+	if len(m.columns) > 0 {
+		var cols []string
+		for _, c := range m.columns {
+			cols = append(cols, c.config().Describe())
+		}
+		output += "\n\t" + strings.Join(cols, "\n\t")
 	}
-}
-
-func (m *joinTable) LeftOuterJoin(right Table, on Condition) Table {
-	return &joinTable{
-		left:  m,
-		right: right,
-		typ:   left_outer_join,
-		on:    on,
-	}
-}
-
-func (m *joinTable) RightOuterJoin(right Table, on Condition) Table {
-	return &joinTable{
-		left:  m,
-		right: right,
-		typ:   right_outer_join,
-		on:    on,
-	}
-}
-
-func (m *joinTable) FullOuterJoin(right Table, on Condition) Table {
-	return &joinTable{
-		left:  m,
-		right: right,
-		typ:   full_outer_join,
-		on:    on,
-	}
-}
-
-func (m *joinTable) serialize(bldr *builder) {
-	bldr.AppendItem(m.left)
-	switch m.typ {
-	case inner_join:
-		bldr.Append(" INNER JOIN ")
-	case left_outer_join:
-		bldr.Append(" LEFT OUTER JOIN ")
-	case right_outer_join:
-		bldr.Append(" RIGHT OUTER JOIN ")
-	case full_outer_join:
-		bldr.Append(" FULL OUTER JOIN ")
-	}
-	bldr.AppendItem(m.right)
-	bldr.Append(" ON ")
-	bldr.AppendItem(m.on)
 	return
-}
-
-func (m *joinTable) hasColumn(trg Column) bool {
-	if m.left.hasColumn(trg) {
-		return true
-	}
-	if m.right.hasColumn(trg) {
-		return true
-	}
-	return false
 }

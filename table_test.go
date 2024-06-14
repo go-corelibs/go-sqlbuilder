@@ -113,7 +113,7 @@ func TestJoinTable(t *testing.T) {
 
 	Convey("joins", t, func() {
 		// inner join
-		b := newBuilder(TestDialect{})
+		b := newBuilder(TestingDialect{})
 		joinedTable := l_table.InnerJoin(r_table, l_table.C("right_id").Eq(r_table.C("id")))
 		joinedTable.serialize(b)
 		So(b.query.String(), ShouldEqual, `"LEFT_TABLE" INNER JOIN "RIGHT_TABLE" ON "LEFT_TABLE"."right_id"="RIGHT_TABLE"."id"`)
@@ -121,7 +121,7 @@ func TestJoinTable(t *testing.T) {
 		So(len(b.args), ShouldEqual, 0)
 
 		// left outer join
-		b = newBuilder(TestDialect{})
+		b = newBuilder(TestingDialect{})
 		joinedTable = l_table.LeftOuterJoin(r_table, l_table.C("right_id").Eq(r_table.C("id")))
 		joinedTable.serialize(b)
 		So(b.query.String(), ShouldEqual, `"LEFT_TABLE" LEFT OUTER JOIN "RIGHT_TABLE" ON "LEFT_TABLE"."right_id"="RIGHT_TABLE"."id"`)
@@ -129,7 +129,7 @@ func TestJoinTable(t *testing.T) {
 		So(len(b.args), ShouldEqual, 0)
 
 		// right outer join
-		b = newBuilder(TestDialect{})
+		b = newBuilder(TestingDialect{})
 		joinedTable = l_table.RightOuterJoin(r_table, l_table.C("right_id").Eq(r_table.C("id")))
 		joinedTable.serialize(b)
 		So(b.query.String(), ShouldEqual, `"LEFT_TABLE" RIGHT OUTER JOIN "RIGHT_TABLE" ON "LEFT_TABLE"."right_id"="RIGHT_TABLE"."id"`)
@@ -137,7 +137,7 @@ func TestJoinTable(t *testing.T) {
 		So(len(b.args), ShouldEqual, 0)
 
 		// full outer join
-		b = newBuilder(TestDialect{})
+		b = newBuilder(TestingDialect{})
 		joinedTable = l_table.FullOuterJoin(r_table, l_table.C("right_id").Eq(r_table.C("id")))
 		joinedTable.serialize(b)
 		So(b.query.String(), ShouldEqual, `"LEFT_TABLE" FULL OUTER JOIN "RIGHT_TABLE" ON "LEFT_TABLE"."right_id"="RIGHT_TABLE"."id"`)
@@ -151,15 +151,15 @@ func TestJoinTable(t *testing.T) {
 		if !reflect.DeepEqual(r_table.C("value"), joinedTable.C("value")) {
 			t.Error("failed")
 		}
-		if _, ok := joinedTable.C("not_exist_column").(*errorColumn); !ok {
+		if _, ok := joinedTable.C("not_exist_column").(*cErrorColumn); !ok {
 			t.Error("failed")
 		}
-		if _, ok := joinedTable.C("id").(*errorColumn); !ok {
+		if _, ok := joinedTable.C("id").(*cErrorColumn); !ok {
 			t.Error("failed")
 		}
 
 		// combination
-		b = newBuilder(TestDialect{})
+		b = newBuilder(TestingDialect{})
 		joinedTable = l_table.InnerJoin(r_table, l_table.C("right_id").Eq(r_table.C("id"))).InnerJoin(rr_table, l_table.C("right_id").Eq(rr_table.C("id")))
 		joinedTable.serialize(b)
 		So(b.query.String(), ShouldEqual, `"LEFT_TABLE" INNER JOIN "RIGHT_TABLE" ON "LEFT_TABLE"."right_id"="RIGHT_TABLE"."id" INNER JOIN "RIGHTRIGHT_TABLE" ON "LEFT_TABLE"."right_id"="RIGHTRIGHT_TABLE"."id"`)
@@ -187,7 +187,7 @@ func TestTableColumnOperation(t *testing.T) {
 		"TABLE_NAME",
 		nil,
 		IntColumn("id", nil),
-	).(*table)
+	).(*cTable)
 
 	Convey("column operations", t, func() {
 

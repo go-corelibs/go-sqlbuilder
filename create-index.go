@@ -31,8 +31,8 @@ type CreateIndexBuilder interface {
 	privateCreateIndex()
 }
 
-// CreateIndexStatement represents a "CREATE INDEX" statement.
-type CreateIndexStatement struct {
+// cCreateIndex represents a "CREATE INDEX" statement.
+type cCreateIndex struct {
 	table       Table
 	columns     []Column
 	name        string
@@ -48,32 +48,32 @@ func CreateIndex(tbl Table) CreateIndexBuilder {
 	return createIndex(tbl, dialect())
 }
 
-func createIndex(tbl Table, d Dialect) *CreateIndexStatement {
+func createIndex(tbl Table, d Dialect) *cCreateIndex {
 	if d == nil {
 		d = dialect()
 	}
 	if tbl == nil {
-		return &CreateIndexStatement{
+		return &cCreateIndex{
 			err: newError("table is nil."),
 		}
 	}
-	if _, ok := tbl.(*table); !ok {
-		return &CreateIndexStatement{
+	if _, ok := tbl.(*cTable); !ok {
+		return &cCreateIndex{
 			err: newError("CreateTable can use only natural table."),
 		}
 	}
-	return &CreateIndexStatement{
+	return &cCreateIndex{
 		table:   tbl,
 		dialect: d,
 	}
 }
 
-func (b *CreateIndexStatement) privateCreateIndex() {
+func (b *cCreateIndex) privateCreateIndex() {
 	// nop
 }
 
 // IfNotExists sets "IF NOT EXISTS" clause.
-func (b *CreateIndexStatement) IfNotExists() CreateIndexBuilder {
+func (b *cCreateIndex) IfNotExists() CreateIndexBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -81,8 +81,9 @@ func (b *CreateIndexStatement) IfNotExists() CreateIndexBuilder {
 	return b
 }
 
-// IfNotExists sets "IF NOT EXISTS" clause. If not set this, returns error on ToSql().
-func (b *CreateIndexStatement) Columns(columns ...Column) CreateIndexBuilder {
+// Columns specifies the columns of the index being created. Must be called
+// otherwise ToSQL will return an error
+func (b *cCreateIndex) Columns(columns ...Column) CreateIndexBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -92,7 +93,7 @@ func (b *CreateIndexStatement) Columns(columns ...Column) CreateIndexBuilder {
 
 // Name sets name for index.
 // If not set this, auto generated name will be used.
-func (b *CreateIndexStatement) Name(name string) CreateIndexBuilder {
+func (b *cCreateIndex) Name(name string) CreateIndexBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -101,7 +102,7 @@ func (b *CreateIndexStatement) Name(name string) CreateIndexBuilder {
 }
 
 // ToSql generates query string, placeholder arguments, and returns err on errors.
-func (b *CreateIndexStatement) ToSql() (query string, args []interface{}, err error) {
+func (b *cCreateIndex) ToSql() (query string, args []interface{}, err error) {
 	bldr := newBuilder(b.dialect)
 	defer func() {
 		query, args, err = bldr.Query(), bldr.Args(), bldr.Err()
@@ -119,7 +120,7 @@ func (b *CreateIndexStatement) ToSql() (query string, args []interface{}, err er
 	if len(b.name) != 0 {
 		bldr.Append(b.dialect.QuoteField(b.name))
 	} else {
-		bldr.SetError(newError("name was not setted."))
+		bldr.SetError(newError("name was not set."))
 		return
 	}
 
@@ -128,26 +129,11 @@ func (b *CreateIndexStatement) ToSql() (query string, args []interface{}, err er
 
 	if len(b.columns) != 0 {
 		bldr.Append(" ( ")
-		bldr.AppendItem(createIndexColumnList(b.columns))
+		bldr.AppendItem(cCreateIndexColumnList(b.columns))
 		bldr.Append(" )")
 	} else {
-		bldr.SetError(newError("columns was not setted."))
+		bldr.SetError(newError("columns was not set."))
 		return
 	}
 	return
-}
-
-type createIndexColumnList []Column
-
-func (m createIndexColumnList) serialize(bldr *builder) {
-	first := true
-	for _, column := range m {
-		if first {
-			first = false
-		} else {
-			bldr.Append(", ")
-		}
-		cc := column.config()
-		bldr.AppendItem(cc)
-	}
 }

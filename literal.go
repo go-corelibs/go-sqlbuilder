@@ -27,6 +27,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/go-corelibs/values"
 )
 
 type literal interface {
@@ -35,49 +37,39 @@ type literal interface {
 	IsNil() bool
 }
 
-type literalImpl struct {
+type cLiteralImpl struct {
 	raw         interface{}
 	placeholder bool
 }
 
 func toLiteral(v interface{}) literal {
-	refv := reflect.ValueOf(v)
-	if v != nil &&
-		refv.Kind() == reflect.Ptr &&
-		!refv.Type().Implements(reflect.TypeOf((*sqldriver.Valuer)(nil)).Elem()) {
-		if refv.IsNil() {
-			v = nil
-		} else {
-			v = reflect.Indirect(refv).Interface()
-		}
-	}
-	return &literalImpl{
-		raw:         v,
+	return &cLiteralImpl{
+		raw:         values.ToIndirect(v),
 		placeholder: true,
 	}
 }
 
-func (l *literalImpl) serialize(bldr *builder) {
-	val, err := l.converted()
+func (c *cLiteralImpl) serialize(b *builder) {
+	val, err := c.converted()
 	if err != nil {
-		bldr.SetError(err)
+		b.SetError(err)
 		return
 	}
 
-	if l.placeholder {
-		bldr.AppendValue(val)
+	if c.placeholder {
+		b.AppendValue(val)
 	} else {
-		bldr.Append(l.string())
+		b.Append(c.string())
 	}
 	return
 }
 
-func (l *literalImpl) IsNil() bool {
-	if l.raw == nil {
+func (c *cLiteralImpl) IsNil() bool {
+	if c.raw == nil {
 		return true
 	}
 
-	v := reflect.ValueOf(l.raw)
+	v := reflect.ValueOf(c.raw)
 	switch v.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
 		return v.IsNil()
@@ -87,14 +79,14 @@ func (l *literalImpl) IsNil() bool {
 }
 
 // convert to sqldriver.Value(int64/float64/bool/[]byte/string/time.Time)
-func (l *literalImpl) converted() (interface{}, error) {
-	switch t := l.raw.(type) {
+func (c *cLiteralImpl) converted() (interface{}, error) {
+	switch t := c.raw.(type) {
 	case int, int8, int16, int32, int64:
 		return int64(reflect.ValueOf(t).Int()), nil
 	case uint, uint8, uint16, uint32, uint64:
 		return int64(reflect.ValueOf(t).Uint()), nil
 	case float32, float64:
-		return reflect.ValueOf(l.raw).Float(), nil
+		return reflect.ValueOf(c.raw).Float(), nil
 	case bool:
 		return t, nil
 	case []byte:
@@ -112,8 +104,8 @@ func (l *literalImpl) converted() (interface{}, error) {
 	}
 }
 
-func (l *literalImpl) string() string {
-	val, err := l.converted()
+func (c *cLiteralImpl) string() string {
+	val, err := c.converted()
 	if err != nil {
 		return ""
 	}
@@ -140,6 +132,11 @@ func (l *literalImpl) string() string {
 	}
 }
 
-func (l *literalImpl) Raw() interface{} {
-	return l.raw
+func (c *cLiteralImpl) Raw() interface{} {
+	return c.raw
+}
+
+func (c *cLiteralImpl) Describe() (output string) {
+	// not implemented yet
+	return
 }

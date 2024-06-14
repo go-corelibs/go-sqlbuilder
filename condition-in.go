@@ -22,37 +22,66 @@
 package sqlbuilder
 
 import (
-	"reflect"
-	"testing"
+	"fmt"
+	"strings"
 )
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+type cConditionIn struct {
+	not  bool
+	left serializable
+	in   []serializable
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+func newInCondition(not bool, left Column, list ...interface{}) Condition {
+	m := &cConditionIn{
+		not:  not,
+		left: left,
+		in:   make([]serializable, 0, len(list)),
+	}
+	for _, item := range list {
+		if c, ok := item.(Column); ok {
+			m.in = append(m.in, c)
+		} else {
+			m.in = append(m.in, toLiteral(item))
+		}
+	}
+	return m
+}
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+func (c *cConditionIn) serialize(b *builder) {
+	b.AppendItem(c.left)
+	if c.not {
+		b.Append(" NOT ")
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+	b.Append(" IN ( ")
+	b.AppendItems(c.in, ", ")
+	b.Append(" )")
+}
+
+func (c *cConditionIn) columns() []Column {
+	list := make([]Column, 0)
+	if col, ok := c.left.(Column); ok {
+		list = append(list, col)
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
+	for _, in := range c.in {
+		if col, ok := in.(Column); ok {
+			list = append(list, col)
+		}
 	}
+	return list
+}
+
+func (c *cConditionIn) Describe() (output string) {
+	output += fmt.Sprintf("%q", c.left)
+	if c.not {
+		output += " NOT"
+	}
+	output += " IN ("
+	var parts []string
+	for _, in := range c.in {
+		parts = append(parts, in.Describe())
+	}
+	output += strings.Join(parts, ", ")
+	output += ")"
+	return
 }

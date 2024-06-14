@@ -106,7 +106,7 @@ func TestBinaryCondition(t *testing.T) {
 			cond:   table1.C("id").In(NewTable("DUMMY TABLE", &TableOption{}, StringColumn("id", nil))),
 			query:  `"TABLE_A"."id" IN ( `,
 			args:   []interface{}{},
-			errmsg: "sqlbuilder: got sqlbuilder.table type, but literal is not supporting this.",
+			errmsg: "sqlbuilder: got sqlbuilder.cTable type, but literal is not supporting this.",
 		},
 	}
 
@@ -183,7 +183,7 @@ func TestBinaryConditionForSqlFunctions(t *testing.T) {
 			cond:   Func("count", table1.C("id")).In(NewTable("DUMMY TABLE", &TableOption{}, StringColumn("id", nil))),
 			query:  `count("TABLE_A"."id") IN ( `,
 			args:   []interface{}{},
-			errmsg: "sqlbuilder: got sqlbuilder.table type, but literal is not supporting this.",
+			errmsg: "sqlbuilder: got sqlbuilder.cTable type, but literal is not supporting this.",
 		},
 	}
 

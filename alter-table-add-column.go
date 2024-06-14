@@ -21,38 +21,61 @@
 
 package sqlbuilder
 
-import (
-	"reflect"
-	"testing"
-)
+type cAlterTableAddColumn struct {
+	table  *cTable
+	column ColumnConfig
+	first  bool
+	after  Column
 
-func TestSqlFuncImplements(t *testing.T) {
-	fnImplColumn := func(i interface{}) bool {
-		return reflect.TypeOf(i).Implements(reflect.TypeOf(new(Column)).Elem())
-	}
-	fnImplColumn(&cColumnImpl{})
+	dialect Dialect
 }
 
-func TestSqlFunc(t *testing.T) {
-	b := newBuilder(TestingDialect{})
-	table1 := NewTable(
-		"TABLE_A",
-		&TableOption{},
-		IntColumn("id", &ColumnOption{
-			PrimaryKey: true,
-		}),
-		IntColumn("test1", nil),
-		IntColumn("test2", nil),
-	)
+func (c *cAlterTableAddColumn) serialize(b *builder) {
+	b.Append("ADD COLUMN ")
+	b.AppendItem(c.column)
 
-	Func("funcname", table1.C("id")).serialize(b)
-	if `funcname("TABLE_A"."id")` != b.query.String() {
-		t.Errorf("failed")
+	// SQL data name
+	typ, err := c.dialect.ColumnTypeToString(c.column)
+	if err != nil {
+		b.SetError(err)
+	} else if len(typ) == 0 {
+		b.SetError(newError("column type is required.(maybe, a bug is in implements of dialect.)"))
+	} else {
+		b.Append(" ")
+		b.Append(typ)
 	}
-	if len(b.Args()) != 0 {
-		t.Errorf("failed")
+
+	opt, err := c.dialect.ColumnOptionToString(c.column.Option())
+	if err != nil {
+		b.SetError(err)
+	} else if len(opt) != 0 {
+		b.Append(" ")
+		b.Append(opt)
 	}
-	if b.Err() != nil {
-		t.Errorf("failed")
+
+	if c.first {
+		b.Append(" FIRST")
+	} else if c.after != nil {
+		b.Append(" AFTER ")
+		if name := c.after.column_name(); len(name) != 0 {
+			b.Append(c.dialect.QuoteField(name))
+		} else {
+			b.AppendItem(c.after)
+		}
 	}
+}
+
+func (c *cAlterTableAddColumn) applyToTable() error {
+	if c.first {
+		return c.table.AddColumnFirst(c.column)
+	}
+	if c.after != nil {
+		return c.table.AddColumnAfter(c.column, c.after)
+	}
+	return c.table.AddColumnLast(c.column)
+}
+
+func (c *cAlterTableAddColumn) Describe() (output string) {
+	// not implemented yet
+	return
 }
