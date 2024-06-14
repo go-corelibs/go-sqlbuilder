@@ -24,6 +24,7 @@ package dialects
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	sb "github.com/go-corelibs/go-sqlbuilder"
@@ -46,33 +47,26 @@ func (m Sqlite) BindVar(i int) string {
 }
 
 func (m Sqlite) QuoteField(field interface{}) string {
-	str := ""
-	bracket := true
 	switch t := field.(type) {
 	case string:
-		str = t
+		return strconv.Quote(t)
 	case []byte:
-		str = string(t)
+		return strconv.Quote(string(t))
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		str = fmt.Sprint(field)
+		return strconv.Quote(fmt.Sprint(t))
 	case float32, float64:
-		str = fmt.Sprint(field)
+		return strconv.Quote(fmt.Sprint(t))
 	case time.Time:
-		str = t.Format("2006-01-02 15:04:05")
+		return strconv.Quote(t.Format("2006-01-02 15:04:05"))
 	case bool:
 		if t {
-			str = "TRUE"
-		} else {
-			str = "FALSE"
+			return "TRUE"
 		}
-		bracket = false
+		return "FALSE"
 	case nil:
 		return "NULL"
 	}
-	if bracket {
-		str = "\"" + str + "\""
-	}
-	return str
+	return ""
 }
 
 func (m Sqlite) ColumnTypeToString(cc sb.ColumnConfig) (string, error) {
