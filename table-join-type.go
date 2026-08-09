@@ -45,7 +45,7 @@ func (t tableJoinType) String() (name string) {
 	case gFullOuterJoin:
 		return "FULL OUTER JOIN"
 	default:
-		panic(fmt.Errorf("unknown table join type: %q", int(t)))
+		panic(fmt.Errorf("unknown table join type: %d", int(t)))
 	}
 	return
 }
